@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="theme-color" content="#24382c">
+  <title>U.T.M.B. — Ultra Trail du Mariage Bossi</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&family=Inter:wght@400;500;600;700&family=Oswald:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Porte d'accès (si code activé) -->
+  <div id="gate" class="gate" hidden>
+    <form id="gateForm" class="gate-card" autocomplete="off">
+      <div class="gate-badge">U.T.M.B.</div>
+      <h2>Zone d'accès coureurs</h2>
+      <p>Saisissez le code figurant sur votre faire-part.</p>
+      <input id="gateInput" type="password" placeholder="Code d'accès" aria-label="Code d'accès" required>
+      <button type="submit" class="btn btn-gold">Entrer sur le parcours</button>
+      <p id="gateError" class="gate-error" aria-live="polite"></p>
+    </form>
+  </div>
+
+  <!-- Navigation -->
+  <header class="nav" id="nav">
+    <a href="#top" class="nav-logo">U·T·M·B</a>
+    <nav id="navLinks" class="nav-links" aria-label="Sections"></nav>
+  </header>
+
+  <!-- Accueil -->
+  <section class="hero" id="top">
+    <div class="hero-bg" id="heroBg"></div>
+    <div class="hero-veil"></div>
+    <div class="hero-content">
+      <p class="hero-kicker" id="heroLieu"></p>
+      <h1 class="hero-title" id="heroTitre">U.T.M.B.</h1>
+      <p class="hero-sub" id="heroSousTitre">Ultra Trail du Mariage Bossi</p>
+      <p class="hero-names" id="heroPrenoms"></p>
+      <div class="chrono" id="chrono" hidden>
+        <div><span id="cJ">0</span><small>jours</small></div>
+        <div><span id="cH">00</span><small>heures</small></div>
+        <div><span id="cM">00</span><small>min</small></div>
+        <div><span id="cS">00</span><small>sec</small></div>
+      </div>
+      <p class="hero-date" id="heroDate"></p>
+      <a href="#parcours" class="btn btn-gold btn-lg">Prendre le départ ↓</a>
+    </div>
+    <div class="dossard" id="dossard" hidden>
+      <div class="dossard-top">U.T.M.B. · Finisher en devenir</div>
+      <div class="dossard-num" id="dossardNum">000</div>
+      <div class="dossard-name" id="dossardName"></div>
+    </div>
+  </section>
+
+  <!-- Mot d'accueil + bandeau photos -->
+  <section class="intro">
+    <p id="introMessage" class="intro-message"></p>
+    <div class="strip" id="strip" hidden><div class="strip-track" id="stripTrack"></div></div>
+  </section>
+
+  <!-- Parcours 3D -->
+  <section class="parcours" id="parcours">
+    <div class="section-head">
+      <span class="eyebrow">Le parcours</span>
+      <h2>Carnet de course</h2>
+      <div class="progress" aria-label="Progression">
+        <div class="progress-bar"><span id="progressFill"></span></div>
+        <p id="progressText"></p>
+      </div>
+    </div>
+    <div class="map-wrap">
+      <div id="map" class="map" role="region" aria-label="Carte 3D du parcours"></div>
+      <div class="map-tools">
+        <button type="button" class="chip" id="btnTour">⟳ Survol</button>
+        <button type="button" class="chip" id="btnReset">⌂ Vue d'ensemble</button>
+      </div>
+      <aside class="cp-panel" id="cpPanel" aria-label="Points de passage"></aside>
+      <div class="map-fallback" id="mapFallback" hidden>
+        <p>La carte 3D n'est pas disponible sur cet appareil — le parcours reste accessible ci-dessous.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Étapes / sections -->
+  <main id="sections" class="sections"></main>
+
+  <!-- Galerie -->
+  <section class="galerie" id="galerie" hidden>
+    <div class="section-head">
+      <span class="eyebrow">Souvenirs de sentiers</span>
+      <h2>Galerie</h2>
+    </div>
+    <div class="grid" id="galerieGrid"></div>
+  </section>
+
+  <footer class="footer">
+    <p>U.T.M.B. · Ultra Trail du Mariage Bossi</p>
+    <p class="footer-small" id="footerVersion"></p>
+  </footer>
+
+  <!-- Visionneuse -->
+  <div class="lightbox" id="lightbox" hidden>
+    <button type="button" class="lb-close" id="lbClose" aria-label="Fermer">✕</button>
+    <img id="lbImg" alt="">
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
