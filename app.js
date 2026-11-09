@@ -1,4 +1,4 @@
-/* UTMB — moteur du site V1.3.0 (le contenu se gère dans le Google Sheet) */
+/* UTMB — moteur du site V1.4.0 (le contenu se gère dans le Google Sheet) */
 (() => {
   'use strict';
   const C = window.UTMB_CONFIG, I18N = window.UTMB_I18N, FLAGS = window.UTMB_FLAGS;
@@ -479,48 +479,94 @@
   function linkHtml(e) { return e.lien_url ? `<p><a class="btn btn-ghost" href="${esc(e.lien_url)}" target="_blank" rel="noopener">${esc(e.lien_libelle || t('en_savoir'))} →</a></p>` : ''; }
   const formOff = () => C.apiUrl ? '' : `<p class="form-off">${esc(t('demo'))}</p>`;
 
-  function presenceForm() {
+  /* ---------- Formulaires dynamiques (onglet « Questions » du Sheet) ---------- */
+  const DEMI = ['texte', 'email', 'telephone', 'nombre', 'date', 'liste'];
+  const formulaires = () => (DATA.formulaires && Object.keys(DATA.formulaires).length) ? DATA.formulaires : (C.demo.formulaires || {});
+  const vide = v => v == null || (Array.isArray(v) ? v.length === 0 : String(v).trim() === '');
+
+  /* « presence=Oui », « presence!=Non », « besoin=A|B » */
+  function condOk(si, rep) {
+    if (!si) return true;
+    const m = String(si).match(/^\s*([\w-]+)\s*(!=|=)\s*(.*)$/);
+    if (!m) return true;
+    const vals = m[3].split('|').map(s => norm(s)), v = rep[m[1]];
+    const has = Array.isArray(v) ? v.some(x => vals.includes(norm(x))) : vals.includes(norm(v));
+    return m[2] === '=' ? has : !has;
+  }
+
+  function champHtml(q, form) {
+    const id = `f-${form}-${q.id}`, req = q.obligatoire ? ' <span class="req" aria-hidden="true">*</span>' : '';
+    const nm = esc(q.id), ph = q.aide ? ` placeholder="${esc(q.aide)}"` : '', rq = q.obligatoire ? ' aria-required="true"' : '';
+    const def = q.defaut != null && q.defaut !== '' ? String(q.defaut) : '';
+    const lab = `<label for="${id}">${esc(q.question)}${req}</label>`;
+    const opts = q.options || [];
+    let inner;
+    switch (q.type) {
+      case 'texte_long': inner = lab + `<textarea id="${id}" name="${nm}" maxlength="1000"${ph}${rq}>${esc(def)}</textarea>`; break;
+      case 'email': inner = lab + `<input id="${id}" name="${nm}" type="email" maxlength="120" autocomplete="email" value="${esc(def)}"${ph}${rq}>`; break;
+      case 'telephone': inner = lab + `<input id="${id}" name="${nm}" type="tel" maxlength="30" autocomplete="tel" value="${esc(def)}"${ph}${rq}>`; break;
+      case 'nombre': inner = lab + `<input id="${id}" name="${nm}" type="number" inputmode="numeric" min="${q.min}" max="${q.max}" step="1" value="${esc(def)}"${ph}${rq}>`; break;
+      case 'date': inner = lab + `<input id="${id}" name="${nm}" type="date" value="${esc(def)}"${rq}>`; break;
+      case 'liste': inner = lab + `<select id="${id}" name="${nm}"${rq}><option value="">${esc(t('choisir'))}</option>` +
+        opts.map(o => `<option value="${esc(o.v)}"${norm(o.v) === norm(def) ? ' selected' : ''}>${esc(o.l)}</option>`).join('') + '</select>'; break;
+      case 'choix': case 'ouinon': case 'cases': {
+        const multi = q.type === 'cases';
+        const list = q.type === 'ouinon' && !opts.length ? [{ v: 'Oui', l: t('oui') }, { v: 'Non', l: t('non') }] : opts;
+        const defs = def.split(';').map(norm);
+        inner = `<fieldset class="choice-set"><legend>${esc(q.question)}${req}</legend>${q.aide ? `<p class="q-aide">${esc(q.aide)}</p>` : ''}<div class="choice">` +
+          list.map(o => `<label><input type="${multi ? 'checkbox' : 'radio'}" name="${nm}" value="${esc(o.v)}"${defs.includes(norm(o.v)) && def ? ' checked' : ''}> ${esc(o.l)}</label>`).join('') +
+          '</div></fieldset>';
+        break;
+      }
+      default: inner = lab + `<input id="${id}" name="${nm}" type="text" maxlength="200" value="${esc(def)}"${ph}${rq}>`;
+    }
+    return `<div class="q" data-q="${nm}" data-type="${esc(q.type)}"${q.si ? ` data-si="${esc(q.si)}"` : ''}>${inner}</div>`;
+  }
+
+  function formHtml(form) {
+    const qs = formulaires()[form] || [];
+    if (!qs.length) return '';
     const lim = DATA.parametres.date_limite_reponse;
-    return `<form class="form" data-type="presence" novalidate>
-      ${lim && !String(lim).includes('[') ? `<p class="form-off">${esc(t('avant_le', { d: lim }))}</p>` : ''}
-      <div class="form-row">
-        <label>${esc(t('f_nom'))}<input name="nom" required maxlength="80" autocomplete="name"></label>
-        <label>${esc(t('f_email'))}<input name="email" type="email" maxlength="120" autocomplete="email"></label>
-      </div>
-      <div class="choice" role="radiogroup">
-        <label><input type="radio" name="presence" value="Oui" required> ${esc(t('f_oui'))}</label>
-        <label><input type="radio" name="presence" value="Non"> ${esc(t('f_non'))}</label>
-      </div>
-      <div class="form-row">
-        <label>${esc(t('f_adultes'))}<input name="adultes" type="number" min="0" max="20" value="1"></label>
-        <label>${esc(t('f_enfants'))}<input name="enfants" type="number" min="0" max="20" value="0"></label>
-      </div>
-      <label>${esc(t('f_regime'))}<input name="regime" maxlength="200" placeholder="${esc(t('f_regime_ph'))}"></label>
-      <label>${esc(t('f_mot'))}<textarea name="message" maxlength="1000"></textarea></label>
+    const intro = form === 'presence' && lim && !String(lim).includes('[') ? `<p class="form-off">${esc(t('avant_le', { d: lim }))}</p>` : '';
+    return `<form class="form" data-type="${esc(form)}" novalidate>${intro}
+      <div class="form-grid">${qs.map(q => champHtml(q, form)).join('')}</div>
+      <p class="form-legende"><span class="req">*</span> ${esc(t('requis'))}</p>
       <input class="hp" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">
-      <button class="btn btn-gold" type="submit">${esc(t('f_valider'))}</button>
+      <button class="btn btn-gold" type="submit">${esc(t(form === 'presence' ? 'f_valider' : 'f_envoyer'))}</button>
       <p class="form-msg" aria-live="polite"></p>${formOff()}
     </form>`;
   }
-  function hebergementForm() {
-    return `<form class="form" data-type="hebergement" novalidate>
-      <div class="form-row">
-        <label>${esc(t('f_nom'))}<input name="nom" required maxlength="80" autocomplete="name"></label>
-        <label>${esc(t('f_personnes'))}<input name="personnes" type="number" min="1" max="20" value="2"></label>
-      </div>
-      <label>${esc(t('f_besoin'))}
-        <select name="besoin">
-          <option value="Je souhaite une proposition d'hébergement">${esc(t('f_b1'))}</option>
-          <option value="Je réserve moi-même">${esc(t('f_b2'))}</option>
-          <option value="Je n'ai pas besoin d'hébergement">${esc(t('f_b3'))}</option>
-        </select></label>
-      <label>${esc(t('f_nuits'))}<input name="nuits" maxlength="120" placeholder="${esc(t('f_nuits_ph'))}"></label>
-      <label>${esc(t('f_comment'))}<textarea name="commentaire" maxlength="1000"></textarea></label>
-      <input class="hp" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">
-      <button class="btn btn-gold" type="submit">${esc(t('f_envoyer'))}</button>
-      <p class="form-msg" aria-live="polite"></p>${formOff()}
-    </form>`;
+
+  function lireReponses(f) {
+    const fd = new FormData(f), qs = formulaires()[f.dataset.type] || [], rep = {};
+    qs.forEach(q => { rep[q.id] = q.type === 'cases' ? fd.getAll(q.id) : (fd.get(q.id) ?? ''); });
+    return rep;
   }
+
+  /* Affiche / masque les questions conditionnelles + mise en page 2 colonnes */
+  function majConditions(f) {
+    const rep = lireReponses(f);
+    let run = [];
+    const flush = () => { run.forEach((el, i) => el.classList.toggle('q-pleine', run.length % 2 === 1 && i === run.length - 1)); run = []; };
+    f.querySelectorAll('.q').forEach(el => {
+      const ok = condOk(el.dataset.si, rep);
+      el.hidden = !ok;
+      el.querySelectorAll('input,select,textarea').forEach(i => { i.disabled = !ok; });
+      if (!ok) return;
+      if (DEMI.includes(el.dataset.type)) { el.classList.remove('q-pleine'); run.push(el); }
+      else { el.classList.add('q-pleine'); flush(); }
+    });
+    flush();
+  }
+  function initForms() {
+    document.querySelectorAll('form.form').forEach(f => {
+      majConditions(f);
+      f.addEventListener('change', () => majConditions(f));
+      f.addEventListener('input', ev => { ev.target.closest('.q')?.classList.remove('q-err'); });
+      f.addEventListener('submit', submitForm);
+    });
+  }
+
   function hebergementsHtml() {
     const h = DATA.hebergements.filter(x => x.nom && norm(x.visible) !== 'non');
     if (!h.length) return '';
@@ -549,8 +595,9 @@
       } else {
         body = md(e.contenu || '');
         const ty = norm(e.type);
-        if (ty === 'presence') body += presenceForm();
-        if (ty === 'hebergement') body += hebergementsHtml() + hebergementForm();
+        if (ty === 'presence') body += formHtml('presence');
+        if (ty === 'hebergement') body += hebergementsHtml() + formHtml('hebergement');
+        if (ty.startsWith('formulaire')) body += formHtml(ty.split(':')[1]?.trim() || '');
         if (ty === 'plan') body += photosHtml('plan');
         if (ty === 'programme') body += programmeHtml();
         body += photosHtml(e.id) + linkHtml(e);
@@ -565,7 +612,7 @@
         <div class="stage-body">${body}</div>
       </section>`;
     }).join('');
-    document.querySelectorAll('form.form').forEach(f => f.addEventListener('submit', submitForm));
+    initForms();
   }
 
   function hasGalerie() { return photos('galerie').length > 0; }
@@ -579,30 +626,46 @@
   async function submitForm(ev) {
     ev.preventDefault();
     const f = ev.currentTarget, msg = f.querySelector('.form-msg'), btn = f.querySelector('button[type=submit]');
+    const form = f.dataset.type, qs = formulaires()[form] || [];
     const label = btn.textContent;
-    const data = Object.fromEntries(new FormData(f).entries());
     msg.className = 'form-msg';
-    const err = k => { msg.textContent = t(k); msg.classList.add('err'); };
-    if (!data.nom || !data.nom.trim()) return err('e_nom');
-    if (f.dataset.type === 'presence' && !data.presence) return err('e_presence');
-    if (data.email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(data.email)) return err('e_email');
-    ['adultes', 'enfants', 'personnes'].forEach(k => { if (k in data) data[k] = Math.min(20, Math.max(0, parseInt(data[k], 10) || 0)); });
-    if (!C.apiUrl) return err('e_demo');
+    f.querySelectorAll('.q-err').forEach(el => el.classList.remove('q-err'));
+    const rep = lireReponses(f), envoi = {};
+    const err = (txt, q) => {
+      msg.textContent = txt; msg.classList.add('err');
+      const el = q && f.querySelector(`.q[data-q="${CSS.escape(q.id)}"]`);
+      if (el) { el.classList.add('q-err'); el.querySelector('input,select,textarea')?.focus(); }
+    };
+    for (const q of qs) {
+      if (!condOk(q.si, rep)) continue;               // question masquée : ignorée
+      let v = rep[q.id];
+      if (q.obligatoire && vide(v)) return err(t('e_requis', { q: q.question }), q);
+      if (vide(v)) { envoi[q.id] = q.type === 'cases' ? [] : ''; continue; }
+      if (q.type === 'email' && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v)) return err(t('e_email'), q);
+      if (q.type === 'nombre') {
+        const n = Number(v);
+        if (!Number.isFinite(n) || n < q.min || n > q.max) return err(t('e_nombre', { q: q.question, min: q.min, max: q.max }), q);
+        v = Math.round(n);
+      }
+      envoi[q.id] = v;
+    }
+    if (!C.apiUrl) return err(t('e_demo'));
     btn.disabled = true; btn.textContent = t('envoi');
     try {
-      const r = await fetch(C.apiUrl, { method: 'POST', body: JSON.stringify({ type: f.dataset.type, langue: LANG, ...data }) });
+      const body = { type: form, langue: LANG, website: new FormData(f).get('website') || '', reponses: envoi };
+      const r = await fetch(C.apiUrl, { method: 'POST', body: JSON.stringify(body) });
       const res = await r.json();
       if (!res.ok) throw new Error(res.error || 'Erreur');
-      f.reset();
-      if (f.dataset.type === 'presence' && data.presence === 'Oui' && res.dossard) {
-        const d = { num: res.dossard, nom: data.nom.trim() };
+      f.reset(); majConditions(f);
+      if (form === 'presence' && res.dossard) {
+        const d = { num: res.dossard, nom: String(envoi.nom || '').trim() };
         localStorage.setItem(DOSSARD_KEY, JSON.stringify(d)); showDossard(d);
         msg.textContent = t('ok_dossard', { n: String(res.dossard).padStart(3, '0') });
         toast(t('toast_dossard'), 5000);
       } else msg.textContent = t('ok');
       msg.classList.add('ok');
     } catch (e) {
-      err('e_envoi');
+      err(String(e.message || '').startsWith('requis:') ? t('e_requis', { q: e.message.slice(7) }) : t('e_envoi'));
     } finally { btn.disabled = false; btn.textContent = label; }
   }
 

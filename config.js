@@ -4,7 +4,7 @@
    (onglet Parametres) priment sur les valeurs ci-dessous.
    ========================================================= */
 window.UTMB_CONFIG = {
-  version: "1.3.0",
+  version: "1.4.0",
 
   apiUrl: (window.UTMB_CLES && window.UTMB_CLES.apiUrl) || "",
   accessCodeHash: (window.UTMB_CLES && window.UTMB_CLES.accessCodeHash) || "",
@@ -67,6 +67,30 @@ window.UTMB_CONFIG = {
       { nom:"[Hébergement 2]", type:"Gîte", distance:"[x] km", prix:"[à compléter]", lien:"", description:"[à compléter]" }
     ],
     programme: [],
-    photos: {}
+    photos: {},
+    /* Formulaires de secours (mode démo ou Code.gs pas encore mis à jour).
+       En temps normal, les questions viennent de l'onglet « Questions » du Sheet. */
+    formulaires: {
+      presence: [
+        { id:"nom", question:"Nom & prénom", type:"texte", obligatoire:true },
+        { id:"email", question:"E-mail", type:"email" },
+        { id:"presence", question:"Serez-vous sur la ligne de départ ?", type:"choix", obligatoire:true,
+          options:[{ v:"Oui", l:"🏃 Je prends le départ !" }, { v:"Non", l:"🫶 Abandon… mais de tout cœur avec vous" }] },
+        { id:"adultes", question:"Nombre d'adultes", type:"nombre", min:0, max:20, defaut:1, obligatoire:true, si:"presence=Oui" },
+        { id:"enfants", question:"Nombre d'enfants", type:"nombre", min:0, max:20, defaut:0, si:"presence=Oui" },
+        { id:"regime", question:"Régime alimentaire / allergies", type:"texte", aide:"Végétarien, sans gluten…", si:"presence=Oui" },
+        { id:"message", question:"Un mot pour les mariés", type:"texte_long" }
+      ],
+      hebergement: [
+        { id:"nom", question:"Nom & prénom", type:"texte", obligatoire:true },
+        { id:"personnes", question:"Nombre de personnes", type:"nombre", min:1, max:20, defaut:2 },
+        { id:"besoin", question:"Votre besoin", type:"liste", obligatoire:true, options:[
+          { v:"Je souhaite une proposition d'hébergement", l:"Je souhaite une proposition d'hébergement" },
+          { v:"Je réserve moi-même", l:"Je réserve moi-même" },
+          { v:"Je n'ai pas besoin d'hébergement", l:"Je n'ai pas besoin d'hébergement" }] },
+        { id:"nuits", question:"Nuits concernées", type:"texte", aide:"Ex. vendredi + samedi" },
+        { id:"commentaire", question:"Commentaire", type:"texte_long" }
+      ]
+    }
   }
 };
