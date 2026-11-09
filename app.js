@@ -1,11 +1,12 @@
-/* UTMB — moteur du site V1.8.0 (le contenu se gère dans le Google Sheet) */
+/* UTMB — moteur du site V1.9.0 (le contenu se gère dans le Google Sheet) */
 (() => {
   'use strict';
   const C = window.UTMB_CONFIG, I18N = window.UTMB_I18N, FLAGS = window.UTMB_FLAGS;
   const $ = (s, r = document) => r.querySelector(s);
   const SEEN_KEY = 'utmb_seen', DOSSARD_KEY = 'utmb_dossard', GATE_KEY = 'utmb_ok', LANG_KEY = 'utmb_lang',
-        SCROLL_KEY = 'utmb_scroll', MODE_KEY = 'utmb_mode';
-  let DATA = null, DATA_SIG = '', map = null, VIEW = null, markers = {}, touring = false, tourRaf = null, MODE = '3d', deferredInstall = null;
+        SCROLL_KEY = 'utmb_scroll', MODE_KEY = 'utmb_mode', FORMS_KEY = 'utmb_forms', UNLOCK_KEY = 'utmb_unlock';
+  const NOUVEAU_PERSO_H = 48;                     // durée (heures) du badge « Nouveau » après un déblocage personnel
+let DATA = null, DATA_SIG = '', RAW = null, map = null, VIEW = null, markers = {}, touring = false, tourRaf = null, MODE = '3d', deferredInstall = null;
   let chronoTarget = null, chronoTimer = null, slideTimer = null, pendingFly = null, mapWanted = false, mapLibPromise = null;
 
   /* ---------- Langue ---------- */
@@ -79,6 +80,30 @@
     return out;
   };
 
+  /* ---------- Mémoire de l'appareil : formulaires envoyés ---------- */
+  const lireJSON = (k, d) => { try { return JSON.parse(localStorage.getItem(k) || 'null') ?? d; } catch (e) { return d; } };
+  const formsFaits = () => lireJSON(FORMS_KEY, {});
+  const nouveauJeton = () => (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2, 12));
+  function marquerForm(form, jeton, reponses) {
+    const f = formsFaits(); f[form] = { j: jeton, r: reponses || {} }; localStorage.setItem(FORMS_KEY, JSON.stringify(f));
+  }
+  /* Règle de déblocage (colonne « debloquer_si » de l'onglet Etapes) :
+     « presence » = dès que le formulaire Présence est envoyé ; « presence=Oui » = selon une réponse */
+  function regleOk(regle) {
+    const r = String(regle || '').trim(); if (!r) return true;
+    const f = formsFaits(), m = r.match(/^([\w-]+)\s*(!=|=)\s*(.*)$/);
+    if (!m) return !!f[norm(r)];
+    const vals = m[3].split('|').map(norm);
+    for (const k in f) {
+      const v = f[k].r && f[k].r[m[1]];
+      if (v === undefined) continue;
+      const has = Array.isArray(v) ? v.some(x => vals.includes(norm(x))) : vals.includes(norm(v));
+      return m[2] === '=' ? has : !has;
+    }
+    return false;
+  }
+  const formDeRegle = regle => { const r = String(regle || '').trim(), m = r.match(/^([\w-]+)\s*(!=|=)/); return m ? null : norm(r); };
+
   /* ---------- Porte d'accès ---------- */
   async function sha256(txt) {
     const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(txt.trim().toUpperCase()));
@@ -123,7 +148,25 @@
     d.etapes = (d.etapes || []).filter(e => e.titre)
       .map((e, i) => ({ ...e, ordre: Number(e.ordre) || i + 1, lat: num(e.lat) ?? NaN, lng: num(e.lng) ?? NaN }))
       .sort((a, b) => a.ordre - b.ordre);
-    d.etapes.forEach((e, i) => { if (!e.id) e.id = 'etape-' + (i + 1); });
+      d.etapes.forEach((e, i) => { if (!e.id) e.id = 'etape-' + (i + 1); });
+      /* Déblocage personnel : section verrouillée tant que la personne n'a pas répondu au formulaire indiqué */
+      const unl = lireJSON(UNLOCK_KEY, {}), maintenant = Date.now();
+      d.etapes.forEach(e => {
+        if (!String(e.debloquer_si || '').trim()) return;
+        if (regleOk(e.debloquer_si)) {
+          if (!unl[e.id]) unl[e.id] = maintenant;
+          e.statut = (maintenant - unl[e.id]) < NOUVEAU_PERSO_H * 3600e3 ? 'nouveau' : 'ouvert';
+        } else {
+          delete unl[e.id];
+          e.statut = 'verrouille';
+          if (!String(e.indice || '').trim()) {
+            const f = formDeRegle(e.debloquer_si) || 'presence';
+            const src = d.etapes.find(x => norm(x.type) === f || norm(x.type) === 'formulaire:' + f);
+            e.indice = t('indice_form', { t: src ? src.titre : f });
+          }
+        }
+      });
+      try { localStorage.setItem(UNLOCK_KEY, JSON.stringify(unl)); } catch (err) {}
     d.hebergements = d.hebergements || []; d.programme = d.programme || []; d.photos = d.photos || {};
     return d;
   }
@@ -235,8 +278,8 @@
     $('#strip').hidden = !strip.length;
     $('#stripTrack').innerHTML = stripTrack(strip);
 
-    const d = JSON.parse(localStorage.getItem(DOSSARD_KEY) || 'null');
-    if (d) showDossard(d);
+      const d = lireJSON(DOSSARD_KEY, null);
+      if (d) showDossard(d); else hideDossard();
   }
   /* Bandeau défilant : photos répétées pour toujours remplir la largeur, boucle sans à-coup */
   function stripBase(list) { let b = list.slice(); while (b.length && b.length < 8) b = b.concat(list); return b; }
@@ -283,8 +326,9 @@
   }
   addEventListener('resize', () => strips.forEach((st, tr) => { st.half = tr.scrollWidth / 2; }));
 
-  function showDossard(d) {
-    $('#dossard').hidden = false;
+    function hideDossard() { $('#dossard').hidden = true; }
+    function showDossard(d) {
+      $('#dossard').hidden = false;
     $('#dossardNum').textContent = String(d.num).padStart(3, '0');
     $('#dossardName').textContent = d.nom;
   }
@@ -763,18 +807,33 @@ if (stacked.has(e.id)) opts.offset = [-12, -3]; // marqueur superposé : toujour
     if (!C.apiUrl) return err(t('e_demo'));
     btn.disabled = true; btn.textContent = t('envoi');
     try {
-      const body = { type: form, langue: LANG, website: new FormData(f).get('website') || '', reponses: envoi };
+        const deja = formsFaits()[form];
+        const jeton = deja && deja.j && !String(deja.j).startsWith('d:') ? deja.j : nouveauJeton();   // même appareil = même jeton
+        const body = { type: form, langue: LANG, jeton, website: new FormData(f).get('website') || '', reponses: envoi };
       const r = await fetch(C.apiUrl, { method: 'POST', body: JSON.stringify(body) });
       const res = await r.json();
       if (!res.ok) throw new Error(res.error || 'Erreur');
-      f.reset(); majConditions(f);
-      if (form === 'presence' && res.dossard) {
-        const d = { num: res.dossard, nom: String(envoi.nom || '').trim() };
-        localStorage.setItem(DOSSARD_KEY, JSON.stringify(d)); showDossard(d);
-        msg.textContent = t('ok_dossard', { n: String(res.dossard).padStart(3, '0') });
-        toast(t('toast_dossard'), 5000);
-      } else msg.textContent = t('ok');
-      msg.classList.add('ok');
+        f.reset(); majConditions(f);
+        /* Mémoire de l'appareil : réponses courtes (choix) pour les déblocages conditionnels */
+        const courtes = {};
+        qs.forEach(q => { if (['choix', 'ouinon', 'liste', 'cases'].includes(q.type) && envoi[q.id] !== undefined) courtes[q.id] = envoi[q.id]; });
+        marquerForm(form, jeton, courtes);
+        let texte;
+        if (form === 'presence' && res.dossard) {
+          const d = { num: res.dossard, nom: String(envoi.nom || '').trim(), j: jeton };
+          localStorage.setItem(DOSSARD_KEY, JSON.stringify(d)); showDossard(d);
+          texte = t('ok_dossard', { n: String(res.dossard).padStart(3, '0') });
+          toast(t('toast_dossard'), 5000);
+        } else {
+          if (form === 'presence') { localStorage.removeItem(DOSSARD_KEY); hideDossard(); }   // réponse « Non » : pas de dossard
+          texte = form === 'hebergement' ? t('ok') + ' ' + t('ok_matos') : t('ok');
+        }
+        msg.textContent = texte; msg.classList.add('ok');
+        /* Une section dépend de ce formulaire ? On la débloque tout de suite */
+        if (RAW && rerenderSiDeblocage()) {
+          const nf = document.querySelector(`form.form[data-type="${CSS.escape(form)}"] .form-msg`);
+          if (nf) { nf.textContent = texte; nf.className = 'form-msg ok'; }
+        }
     } catch (e) {
       err(String(e.message || '').startsWith('requis:') ? t('e_requis', { q: e.message.slice(7) }) : t('e_envoi'));
     } finally { btn.disabled = false; btn.textContent = label; }
@@ -837,11 +896,11 @@ if (stacked.has(e.id)) opts.offset = [-12, -3]; // marqueur superposé : toujour
   const formulaireEnCours = () => [...document.querySelectorAll('form.form')].some(f =>
     [...f.elements].some(el => (el.type === 'radio' || el.type === 'checkbox') ? el.checked !== el.defaultChecked
       : (el.name && el.name !== 'website' && 'defaultValue' in el && el.value !== el.defaultValue)));
-  function renderAll(d, maj) {
-    const sig = JSON.stringify(d);
-    if (sig === DATA_SIG) return false;
-    if (maj && formulaireEnCours()) return false;    // l'invité remplit un formulaire : on ne touche à rien
-    DATA_SIG = sig; DATA = prepare(JSON.parse(sig));
+    function renderAll(d, maj, force) {
+      const sig = JSON.stringify(d);
+      if (sig === DATA_SIG && !force) return false;
+      if (maj && formulaireEnCours()) return false;    // l'invité remplit un formulaire : on ne touche à rien
+      RAW = d; DATA_SIG = sig; DATA = prepare(JSON.parse(sig));
     renderHero(); renderNav(); renderProgress(); renderPanel(); renderSections(); renderGalerie(); initScrollSpy(); initStrips();
     delete $('#map2d').dataset.ok;
     if (MODE === '2d') render2D();
@@ -851,7 +910,43 @@ if (stacked.has(e.id)) opts.offset = [-12, -3]; // marqueur superposé : toujour
     return true;
   }
 
-  /* ---------- Démarrage ---------- */
+    /* Re-calcule les déblocages personnels ; re-dessine seulement si quelque chose change */
+    function rerenderSiDeblocage() {
+      const avant = DATA.etapes.map(e => e.id + ':' + statut(e)).join('|');
+      const apres = prepare(JSON.parse(JSON.stringify(RAW))).etapes.map(e => e.id + ':' + statut(e)).join('|');
+      if (avant === apres) return false;
+      renderAll(RAW, false, true);
+      setTimeout(announceNew, 1800);
+      return true;
+    }
+
+    /* Vérifie auprès du Sheet que les réponses mémorisées sur l'appareil existent encore
+       (réponses effacées dans le Sheet → dossard et déblocages retirés de l'appareil) */
+    async function verifierMemoire() {
+      if (!C.apiUrl) return;
+      const f = formsFaits(), dos = lireJSON(DOSSARD_KEY, null), q = {};
+      Object.keys(f).forEach(k => { if (f[k] && f[k].j) q[k] = f[k].j; });
+      if (dos && !q.presence) q.presence = dos.j || ('d:' + dos.num + ':' + (dos.nom || ''));   // dossard d'avant la V1.9
+      if (!Object.keys(q).length) return;
+      try {
+        const r = await fetch(C.apiUrl + (C.apiUrl.includes('?') ? '&' : '?') + 'action=verif&j=' + encodeURIComponent(JSON.stringify(q)) + '&t=' + Date.now());
+        const res = await r.json();
+        if (!res || res.ok !== true || !res.forms) return;          // pas de réponse fiable : on ne touche à rien
+        const ff = formsFaits();
+        Object.keys(q).forEach(k => {
+          if (res.forms[k] === false) delete ff[k];
+          else if (res.forms[k] === true && !ff[k]) ff[k] = { j: q[k], r: k === 'presence' ? { presence: 'Oui' } : {} };
+        });
+        localStorage.setItem(FORMS_KEY, JSON.stringify(ff));
+        if (res.dossard && res.dossard.num) {
+          const d = { num: res.dossard.num, nom: res.dossard.nom || (dos && dos.nom) || '', j: ff.presence && ff.presence.j };
+          localStorage.setItem(DOSSARD_KEY, JSON.stringify(d)); showDossard(d);
+        } else { localStorage.removeItem(DOSSARD_KEY); hideDossard(); }
+        if (RAW) rerenderSiDeblocage();
+      } catch (e) {}
+    }
+
+    /* ---------- Démarrage ---------- */
   async function start() {
     if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
     const y = sessionStorage.getItem(SCROLL_KEY);
@@ -877,7 +972,8 @@ if (stacked.has(e.id)) opts.offset = [-12, -3]; // marqueur superposé : toujour
     if (d) { const premier = !DATA; renderAll(d, !premier); if (premier) announceNew(); }
     else if (!DATA) { renderAll(C.demo); announceNew(); }
 
-    if (y !== null) { sessionStorage.removeItem(SCROLL_KEY); setTimeout(() => scrollTo({ top: +y, behavior: 'instant' }), 80); }
+      if (y !== null) { sessionStorage.removeItem(SCROLL_KEY); setTimeout(() => scrollTo({ top: +y, behavior: 'instant' }), 80); }
+      verifierMemoire();
   }
   start();
 })();

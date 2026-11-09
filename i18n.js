@@ -29,7 +29,9 @@ installer: "📲 Installer l'appli", installer_court: "Installer l'appli", insta
     e_requis: "Merci de répondre à « {q} ».", e_nombre: "« {q} » : indiquez un nombre entre {min} et {max}.",
     e_email: "Adresse e-mail invalide.",
     e_demo: "Mode démo : rien n'a été envoyé.", e_envoi: "Oups, l'envoi a échoué. Réessayez dans un instant.",
-    envoi: "Envoi…", ok_dossard: "Inscription validée ! Votre dossard : n° {n} 🏅", ok: "Merci, c'est bien reçu !",
+      envoi: "Envoi…", ok_dossard: "Inscription validée ! Votre dossard : n° {n} 🏅", ok: "Merci, c'est bien reçu !",
+      ok_matos: "N'oublie pas de vérifier ton matos ! 🎒👟🔦⛰️",
+      indice_form: "🔓 Se débloque dès que vous aurez répondu à « {t} ».",
     toast_dossard: "🏅 Dossard attribué — rendez-vous sur la ligne de départ !"
   },
   it: {
@@ -60,7 +62,9 @@ installer: "📲 Installa l'app", installer_court: "Installa l'app", installe: "
     e_requis: "Rispondete a « {q} ».", e_nombre: "« {q} »: indicate un numero tra {min} e {max}.",
     e_email: "Indirizzo e-mail non valido.",
     e_demo: "Modalità demo: nulla è stato inviato.", e_envoi: "Ops, invio non riuscito. Riprovate tra un istante.",
-    envoi: "Invio…", ok_dossard: "Iscrizione confermata! Il vostro pettorale: n° {n} 🏅", ok: "Grazie, ricevuto!",
+      envoi: "Invio…", ok_dossard: "Iscrizione confermata! Il vostro pettorale: n° {n} 🏅", ok: "Grazie, ricevuto!",
+      ok_matos: "Non dimenticare di controllare l'attrezzatura! 🎒👟🔦⛰️",
+      indice_form: "🔓 Si sblocca non appena avrete risposto a « {t} ».",
     toast_dossard: "🏅 Pettorale assegnato — ci vediamo alla partenza!"
   },
   es: {
@@ -91,7 +95,9 @@ installer: "📲 Instalar la app", installer_court: "Instalar la app", installe:
     e_requis: "Respondan a « {q} ».", e_nombre: "« {q} »: indiquen un número entre {min} y {max}.",
     e_email: "Correo electrónico no válido.",
     e_demo: "Modo demo: no se envió nada.", e_envoi: "Uy, el envío falló. Inténtenlo de nuevo en un momento.",
-    envoi: "Enviando…", ok_dossard: "¡Inscripción confirmada! Su dorsal: n.º {n} 🏅", ok: "¡Gracias, recibido!",
+      envoi: "Enviando…", ok_dossard: "¡Inscripción confirmada! Su dorsal: n.º {n} 🏅", ok: "¡Gracias, recibido!",
+      ok_matos: "¡No olvides revisar tu equipo! 🎒👟🔦⛰️",
+      indice_form: "🔓 Se desbloquea en cuanto respondan a « {t} ».",
     toast_dossard: "🏅 Dorsal asignado — ¡nos vemos en la largada!"
   }
 };

@@ -1,5 +1,14 @@
 # UTMB – Journal des versions
 
+## V1.9.0 — Déblocage personnel, dossard vérifié, message matos
+- Nouvelle colonne Etapes « debloquer_si » : section verrouillée pour chaque invité tant qu'il n'a pas répondu au formulaire
+  indiqué (ex. « presence » ou « presence=Oui ») ; débloquée instantanément après l'envoi, badge « Nouveau » 48 h
+- Dossard et déblocages vérifiés auprès du Sheet à chaque visite : réponse effacée dans le Sheet → dossard retiré de l'appareil
+- Chaque envoi porte un jeton d'appareil (colonne « jeton » des onglets Reponses_…) ; renvoi depuis le même appareil = même dossard
+- Réponse « Non » à la présence : pas de dossard affiché
+- Hébergement : « Merci, c'est bien reçu ! N'oublie pas de vérifier ton matos ! 🎒👟🔦⛰️ » (FR/IT/ES)
+- ⚠️ Code.gs modifié → coller + 💾 + New version + 🏔️ UTMB › Mettre à jour la structure
+
 ## V1.8.0 — Bandeaux iOS, carte plus haute, pastilles « Nouveau »
 - Bandeaux photos : défilement piloté en JavaScript (les animations CSS se figeaient sur iPhone/iPad) ;
   pause au survol ou au toucher, arrêt automatique hors écran
