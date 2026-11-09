@@ -2,7 +2,7 @@
 
 ## V1.5.1 — Renommage
 - « Ultra Trail du Mariage Bossi » partout (titre d'onglet, accueil, pied de page, données de démo, Code.gs)
-- ⚠️ Le sous-titre affiché vient du Sheet : Parametres › sous_titre à modifier à la main
+- ⚠️ Le sous-titre affiché vient du Sheet : Parametres › sous_titre à modifier à la main 
 
 ## V1.5.0 — Accueil, 2D aérienne, hébergements
 - Accueil : photo affichée en entier (plus de recadrage ni d'effet zoom), bords comblés par la même photo floutée
