@@ -18,17 +18,21 @@
   <div id="gate" class="gate" hidden>
     <form id="gateForm" class="gate-card" autocomplete="off">
       <div class="gate-badge">U.T.M.B.</div>
-      <h2>Zone d'accès coureurs</h2>
-      <p>Saisissez le code figurant sur votre faire-part.</p>
-      <input id="gateInput" type="password" placeholder="Code d'accès" aria-label="Code d'accès" required>
-      <button type="submit" class="btn btn-gold">Entrer sur le parcours</button>
+      <div class="lang lang-gate" data-lang-switch></div>
+      <h2 data-i18n="gate_titre">Zone d'accès coureurs</h2>
+      <p data-i18n="gate_texte">Saisissez le code figurant sur votre faire-part.</p>
+      <input id="gateInput" type="password" data-i18n-ph="gate_ph" placeholder="Code d'accès" aria-label="Code" required>
+      <button type="submit" class="btn btn-gold" data-i18n="gate_btn">Entrer sur le parcours</button>
       <p id="gateError" class="gate-error" aria-live="polite"></p>
     </form>
   </div>
 
   <!-- Navigation -->
   <header class="nav" id="nav">
-    <a href="#top" class="nav-logo">U·T·M·B</a>
+    <div class="nav-brand">
+      <a href="#top" class="nav-logo">U·T·M·B</a>
+      <div class="lang" data-lang-switch role="group" aria-label="Langue / Lingua / Idioma"></div>
+    </div>
     <nav id="navLinks" class="nav-links" aria-label="Sections"></nav>
   </header>
 
@@ -42,16 +46,16 @@
       <p class="hero-sub" id="heroSousTitre">Ultra Trail du Mariage Bossi</p>
       <p class="hero-names" id="heroPrenoms"></p>
       <div class="chrono" id="chrono" hidden>
-        <div><span id="cJ">0</span><small>jours</small></div>
-        <div><span id="cH">00</span><small>heures</small></div>
-        <div><span id="cM">00</span><small>min</small></div>
-        <div><span id="cS">00</span><small>sec</small></div>
+        <div><span id="cJ">0</span><small data-i18n="jours">jours</small></div>
+        <div><span id="cH">00</span><small data-i18n="heures">heures</small></div>
+        <div><span id="cM">00</span><small data-i18n="min">min</small></div>
+        <div><span id="cS">00</span><small data-i18n="sec">sec</small></div>
       </div>
       <p class="hero-date" id="heroDate"></p>
-      <a href="#parcours" class="btn btn-gold btn-lg">Prendre le départ ↓</a>
+      <a href="#parcours" class="btn btn-gold btn-lg" data-i18n="cta">Prendre le départ ↓</a>
     </div>
     <div class="dossard" id="dossard" hidden>
-      <div class="dossard-top">U.T.M.B. · Finisher en devenir</div>
+      <div class="dossard-top" data-i18n="dossard_top">U.T.M.B. · Finisher en devenir</div>
       <div class="dossard-num" id="dossardNum">000</div>
       <div class="dossard-name" id="dossardName"></div>
     </div>
@@ -66,22 +70,22 @@
   <!-- Parcours 3D -->
   <section class="parcours" id="parcours">
     <div class="section-head">
-      <span class="eyebrow">Le parcours</span>
-      <h2>Carnet de course</h2>
-      <div class="progress" aria-label="Progression">
+      <span class="eyebrow" data-i18n="parcours_eyebrow">Le parcours</span>
+      <h2 data-i18n="parcours_titre">Carnet de course</h2>
+      <div class="progress">
         <div class="progress-bar"><span id="progressFill"></span></div>
         <p id="progressText"></p>
       </div>
     </div>
     <div class="map-wrap">
-      <div id="map" class="map" role="region" aria-label="Carte 3D du parcours"></div>
+      <div id="map" class="map" role="region" aria-label="Map 3D"></div>
       <div class="map-tools">
-        <button type="button" class="chip" id="btnTour">⟳ Survol</button>
-        <button type="button" class="chip" id="btnReset">⌂ Vue d'ensemble</button>
+        <button type="button" class="chip" id="btnTour" data-i18n="survol">⟳ Survol</button>
+        <button type="button" class="chip" id="btnReset" data-i18n="ensemble">⌂ Vue d'ensemble</button>
       </div>
-      <aside class="cp-panel" id="cpPanel" aria-label="Points de passage"></aside>
+      <aside class="cp-panel" id="cpPanel"></aside>
       <div class="map-fallback" id="mapFallback" hidden>
-        <p>La carte 3D n'est pas disponible sur cet appareil — le parcours reste accessible ci-dessous.</p>
+        <p data-i18n="fallback">La carte 3D n'est pas disponible sur cet appareil — le parcours reste accessible ci-dessous.</p>
       </div>
     </div>
   </section>
@@ -92,8 +96,8 @@
   <!-- Galerie -->
   <section class="galerie" id="galerie" hidden>
     <div class="section-head">
-      <span class="eyebrow">Souvenirs de sentiers</span>
-      <h2>Galerie</h2>
+      <span class="eyebrow" data-i18n="galerie_eyebrow">Souvenirs de sentiers</span>
+      <h2 data-i18n="galerie">Galerie</h2>
     </div>
     <div class="grid" id="galerieGrid"></div>
   </section>
@@ -105,7 +109,7 @@
 
   <!-- Visionneuse -->
   <div class="lightbox" id="lightbox" hidden>
-    <button type="button" class="lb-close" id="lbClose" aria-label="Fermer">✕</button>
+    <button type="button" class="lb-close" id="lbClose" aria-label="✕">✕</button>
     <img id="lbImg" alt="">
   </div>
 
@@ -113,6 +117,7 @@
 
   <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
   <script src="config.js"></script>
+  <script src="i18n.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

@@ -3,21 +3,25 @@
    config.js — LE SEUL FICHIER DE CODE À PERSONNALISER
    ========================================================= */
 window.UTMB_CONFIG = {
-  version: "1.0.0",
+  version: "1.1.0",
 
-  /* 1) URL de l'Apps Script (se termine par /exec). Vide = mode démo. */
+  /* 1) URL de l'Apps Script (se termine par /exec). Vide = mode démo.
+        ⚠️ À RECOPIER depuis ton ancien config.js à chaque livraison. */
   apiUrl: "https://script.google.com/macros/s/AKfycbwGfRQS1Z0V8N9U2MNVOYCounZabAHdStlwHU3E1gZhJCMzvDcazPj9n1vyeIfSO3xK/exec",
 
-  /* 2) Code d'accès (optionnel). Colle ici l'empreinte générée avec outils/hash.html.
-        Vide = site ouvert à toute personne ayant le lien. */
+  /* 2) Code d'accès (optionnel). Empreinte générée avec outils/hash.html.
+        ⚠️ À RECOPIER depuis ton ancien config.js à chaque livraison. */
   accessCodeHash: "0855cf25c4ecc9b73aa1183949e67b76ffda26352d656764c5207778d5930c74",
 
-  /* 3) Carte 3D */
+  /* 3) Langues proposées (la 1re = langue par défaut) */
+  langues: ["fr", "it", "es"],
+
+  /* 4) Carte 3D — vue initiale côté Chamonix (regard vers le sud / l'Italie) */
   map: {
-    center: [6.93, 45.88],   // [longitude, latitude]
+    center: [6.92, 45.86],   // [longitude, latitude]
     zoom: 10.1,
     pitch: 62,
-    bearing: -18,
+    bearing: 162,            // 0 = nord en haut ; 162 ≈ vue depuis Chamonix vers le Mont Blanc
     exaggeration: 1.5        // relief : 1 = réel, 2 = très marqué
   },
 
@@ -31,8 +35,7 @@ window.UTMB_CONFIG = {
     [6.9330,46.0330],[6.9240,45.9980],[6.8900,45.9600],[6.8760,45.9300]
   ],
 
-  /* Données de démonstration : utilisées tant que apiUrl est vide.
-     Une fois le Google Sheet branché, c'est lui qui fait foi. */
+  /* Données de démonstration : utilisées tant que apiUrl est vide (français uniquement). */
   demo: {
     parametres: {
       titre: "U.T.M.B.",
