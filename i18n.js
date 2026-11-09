@@ -1,4 +1,4 @@
-/* UTMB — textes de l'interface (FR / IT / ES)
+/* UTMB — textes de l'interface (FR / IT / ES-Chili)
    Pour corriger une traduction : modifier la valeur ici. {n}, {t}… = variables. */
 window.UTMB_I18N = {
   fr: {
@@ -6,10 +6,16 @@ window.UTMB_I18N = {
     gate_titre: "Zone d'accès coureurs", gate_texte: "Saisissez le code figurant sur votre faire-part.",
     gate_ph: "Code d'accès", gate_btn: "Entrer sur le parcours", gate_err: "Code incorrect — vérifiez votre faire-part.",
     jours: "jours", heures: "heures", min: "min", sec: "sec",
+    alti_label: "Altitude du jour", alti_max: "sommet à {a} m", alti_top: "🏔️ Sommet atteint !",
     cta: "Prendre le départ ↓", dossard_top: "U.T.M.B. · Finisher en devenir",
+    installer: "📲 Installer l'appli", installe: "🎉 Appli installée !",
+    ios_titre: "Ajouter à l'écran d'accueil",
+    ios_1: "Touchez le bouton Partager (carré avec une flèche) en bas de Safari.",
+    ios_2: "Choisissez « Sur l'écran d'accueil ».",
+    ios_3: "Touchez « Ajouter » : l'icône UTMB apparaît comme une appli.",
     parcours_eyebrow: "Le parcours", parcours_titre: "Carnet de course",
     progress: "{n} / {t} points de passage débloqués", survol: "⟳ Survol", ensemble: "⌂ Vue d'ensemble",
-    fallback: "La carte 3D n'est pas disponible sur cet appareil — le parcours reste accessible ci-dessous.",
+    mode2d: "🗺️ 2D", mode3d: "⛰️ 3D", info2d: "Carte 2D activée sur cet appareil.",
     galerie_eyebrow: "Souvenirs de sentiers", galerie: "Galerie",
     nouveau: "Nouveau", verrouille: "Point de passage verrouillé", bientot: "Débloqué prochainement",
     toast_new: "🎉 Nouveau point de passage débloqué : {t} !", toast_tap: "touchez à nouveau pour lire",
@@ -32,10 +38,16 @@ window.UTMB_I18N = {
     gate_titre: "Area riservata ai corridori", gate_texte: "Inserite il codice indicato sulla partecipazione.",
     gate_ph: "Codice di accesso", gate_btn: "Entra nel percorso", gate_err: "Codice errato — controllate la partecipazione.",
     jours: "giorni", heures: "ore", min: "min", sec: "sec",
+    alti_label: "Altitudine di oggi", alti_max: "vetta a {a} m", alti_top: "🏔️ Vetta raggiunta!",
     cta: "Al via! ↓", dossard_top: "U.T.M.B. · Futuro finisher",
+    installer: "📲 Installa l'app", installe: "🎉 App installata!",
+    ios_titre: "Aggiungi alla schermata Home",
+    ios_1: "Toccate il pulsante Condividi (quadrato con una freccia) in basso in Safari.",
+    ios_2: "Scegliete « Aggiungi alla schermata Home ».",
+    ios_3: "Toccate « Aggiungi »: l'icona UTMB appare come un'app.",
     parcours_eyebrow: "Il percorso", parcours_titre: "Diario di gara",
     progress: "{n} / {t} punti di passaggio sbloccati", survol: "⟳ Sorvolo", ensemble: "⌂ Vista d'insieme",
-    fallback: "La mappa 3D non è disponibile su questo dispositivo — il percorso resta consultabile qui sotto.",
+    mode2d: "🗺️ 2D", mode3d: "⛰️ 3D", info2d: "Mappa 2D attivata su questo dispositivo.",
     galerie_eyebrow: "Ricordi di sentiero", galerie: "Galleria",
     nouveau: "Nuovo", verrouille: "Punto di passaggio bloccato", bientot: "Disponibile a breve",
     toast_new: "🎉 Nuovo punto di passaggio sbloccato: {t}!", toast_tap: "toccate di nuovo per leggere",
@@ -54,36 +66,42 @@ window.UTMB_I18N = {
     toast_dossard: "🏅 Pettorale assegnato — ci vediamo alla partenza!"
   },
   es: {
-    _nom: "Español", _locale: "es-ES",
-    gate_titre: "Zona de acceso de corredores", gate_texte: "Introducid el código que figura en la invitación.",
-    gate_ph: "Código de acceso", gate_btn: "Entrar en el recorrido", gate_err: "Código incorrecto — revisad la invitación.",
+    _nom: "Español", _locale: "es-CL",
+    gate_titre: "Zona de acceso de corredores", gate_texte: "Ingresen el código que aparece en la invitación.",
+    gate_ph: "Código de acceso", gate_btn: "Entrar al recorrido", gate_err: "Código incorrecto — revisen la invitación.",
     jours: "días", heures: "horas", min: "min", sec: "seg",
-    cta: "¡A la salida! ↓", dossard_top: "U.T.M.B. · Futuro finisher",
-    parcours_eyebrow: "El recorrido", parcours_titre: "Cuaderno de carrera",
+    alti_label: "Altitud de hoy", alti_max: "cumbre a {a} m", alti_top: "🏔️ ¡Cumbre alcanzada!",
+    cta: "¡A la largada! ↓", dossard_top: "U.T.M.B. · Futuro finisher",
+    installer: "📲 Instalar la app", installe: "🎉 ¡App instalada!",
+    ios_titre: "Agregar a la pantalla de inicio",
+    ios_1: "Toquen el botón Compartir (cuadrado con una flecha) abajo en Safari.",
+    ios_2: "Elijan « Agregar a pantalla de inicio ».",
+    ios_3: "Toquen « Agregar »: el ícono UTMB aparece como una app.",
+    parcours_eyebrow: "El recorrido", parcours_titre: "Bitácora de carrera",
     progress: "{n} / {t} puntos de paso desbloqueados", survol: "⟳ Sobrevuelo", ensemble: "⌂ Vista general",
-    fallback: "El mapa 3D no está disponible en este dispositivo — el recorrido sigue accesible más abajo.",
+    mode2d: "🗺️ 2D", mode3d: "⛰️ 3D", info2d: "Mapa 2D activado en este dispositivo.",
     galerie_eyebrow: "Recuerdos de senderos", galerie: "Galería",
     nouveau: "Nuevo", verrouille: "Punto de paso bloqueado", bientot: "Disponible próximamente",
-    toast_new: "🎉 ¡Nuevo punto de paso desbloqueado: {t}!", toast_tap: "tocad de nuevo para leer",
+    toast_new: "🎉 ¡Nuevo punto de paso desbloqueado: {t}!", toast_tap: "toquen de nuevo para leer",
     en_savoir: "Más información", voir_reserver: "Ver / reservar →",
     demo: "Modo demo: el formulario estará activo cuando se conecte el Google Sheet.",
     avant_le: "Respuesta deseada antes del {d}.",
-    f_nom: "Nombre y apellido *", f_email: "Correo electrónico", f_oui: "🏃 ¡Estaré en la salida!", f_non: "🫶 Abandono… pero de todo corazón con vosotros",
+    f_nom: "Nombre y apellido *", f_email: "Correo electrónico", f_oui: "🏃 ¡Estaré en la largada!", f_non: "🫶 Abandono… pero de todo corazón con ustedes",
     f_adultes: "Número de adultos", f_enfants: "Número de niños", f_regime: "Dieta / alergias",
     f_regime_ph: "Vegetariano, sin gluten…", f_mot: "Unas palabras para los novios", f_valider: "Confirmar mi inscripción",
-    f_personnes: "Número de personas", f_besoin: "Vuestra necesidad",
-    f_b1: "Deseo una propuesta de alojamiento", f_b2: "Reservo por mi cuenta", f_b3: "No necesito alojamiento",
+    f_personnes: "Número de personas", f_besoin: "Su necesidad",
+    f_b1: "Quiero una propuesta de alojamiento", f_b2: "Reservo por mi cuenta", f_b3: "No necesito alojamiento",
     f_nuits: "Noches", f_nuits_ph: "Ej. viernes + sábado", f_comment: "Comentario", f_envoyer: "Enviar",
-    e_nom: "Indicad vuestro nombre.", e_presence: "Indicad si vais a asistir.", e_email: "Correo electrónico no válido.",
-    e_demo: "Modo demo: no se ha enviado nada.", e_envoi: "Vaya, el envío ha fallado. Intentadlo de nuevo en un momento.",
-    envoi: "Enviando…", ok_dossard: "¡Inscripción confirmada! Vuestro dorsal: n.º {n} 🏅", ok: "¡Gracias, recibido!",
-    toast_dossard: "🏅 Dorsal asignado — ¡nos vemos en la salida!"
+    e_nom: "Indiquen su nombre.", e_presence: "Indiquen si van a asistir.", e_email: "Correo electrónico no válido.",
+    e_demo: "Modo demo: no se envió nada.", e_envoi: "Uy, el envío falló. Inténtenlo de nuevo en un momento.",
+    envoi: "Enviando…", ok_dossard: "¡Inscripción confirmada! Su dorsal: n.º {n} 🏅", ok: "¡Gracias, recibido!",
+    toast_dossard: "🏅 Dorsal asignado — ¡nos vemos en la largada!"
   }
 };
 
-/* Drapeaux en SVG (les émojis drapeaux ne s'affichent pas sous Windows) */
+/* Drapeaux en SVG (les émojis drapeaux ne s'affichent pas sous Windows) — "es" = drapeau chilien */
 window.UTMB_FLAGS = {
   fr: '<svg viewBox="0 0 3 2" aria-hidden="true"><rect width="1" height="2" fill="#002654"/><rect x="1" width="1" height="2" fill="#fff"/><rect x="2" width="1" height="2" fill="#CE1126"/></svg>',
   it: '<svg viewBox="0 0 3 2" aria-hidden="true"><rect width="1" height="2" fill="#009246"/><rect x="1" width="1" height="2" fill="#fff"/><rect x="2" width="1" height="2" fill="#CE2B37"/></svg>',
-  es: '<svg viewBox="0 0 3 2" aria-hidden="true"><rect width="3" height="2" fill="#AA151B"/><rect y=".5" width="3" height="1" fill="#F1BF00"/></svg>'
+  es: '<svg viewBox="0 0 3 2" aria-hidden="true"><rect width="3" height="2" fill="#D52B1E"/><rect width="3" height="1" fill="#fff"/><rect width="1" height="1" fill="#0039A6"/><polygon fill="#fff" points="0.500,0.200 0.567,0.407 0.785,0.407 0.609,0.535 0.676,0.743 0.500,0.615 0.324,0.743 0.391,0.535 0.215,0.407 0.433,0.407"/></svg>'
 };

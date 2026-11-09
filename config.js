@@ -1,23 +1,31 @@
 /* =========================================================
-   UTMB – Ultra Trail du Mariage Bossi — config.js
-   Tes clés sont dans cles.js (jamais livré). Les réglages de carte
-   du Sheet (onglet Parametres, lignes carte_…) priment sur ceux-ci.
+   UTMB – Ultra Trail des Mariés Bossi — config.js
+   Tes clés sont dans cles.js (jamais livré). Les réglages du Sheet
+   (onglet Parametres) priment sur les valeurs ci-dessous.
    ========================================================= */
 window.UTMB_CONFIG = {
-  version: "1.2.0",
+  version: "1.3.0",
 
   apiUrl: (window.UTMB_CLES && window.UTMB_CLES.apiUrl) || "",
   accessCodeHash: (window.UTMB_CLES && window.UTMB_CLES.accessCodeHash) || "",
 
-  /* Langues proposées (la 1re = langue par défaut) */
+  /* Langues proposées (la 1re = langue par défaut) — "es" = espagnol (drapeau chilien) */
   langues: ["fr", "it", "es"],
+
+  /* Compte à rebours + altimètre
+     dateMariage : utilisée si la ligne date_mariage du Sheet est vide
+     departChrono : date à laquelle l'altimètre part de Chamonix */
+  dateMariage: "2027-07-24T00:00",
+  departChrono: "2026-11-01T00:00",
+  altitudeDepart: 1035,   // Chamonix
+  altitudeSommet: 4805,   // Mont Blanc (mesure 2023 : 4 805,59 m)
 
   /* Carte 3D — valeurs par défaut (vue depuis Chamonix vers le Mont Blanc / l'Italie) */
   map: {
     center: [6.92, 45.86],   // [longitude, latitude]
     zoom: 10.1,
     pitch: 62,
-    bearing: 162,            // 0 = nord en haut ; 162 ≈ caméra côté Chamonix, regard vers le sud
+    bearing: 162,
     exaggeration: 1.5
   },
 
@@ -35,7 +43,7 @@ window.UTMB_CONFIG = {
   demo: {
     parametres: {
       titre: "U.T.M.B.",
-      sous_titre: "Ultra Trail du Mariage Bossi",
+      sous_titre: "Ultra Trail des Mariés Bossi",
       prenoms: "[Prénom] & [Prénom]",
       date_mariage: "",
       lieu: "Bretagne — [à compléter]",

@@ -5,12 +5,20 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="robots" content="noindex, nofollow">
   <meta name="theme-color" content="#24382c">
-  <title>U.T.M.B. — Ultra Trail du Mariage Bossi</title>
+  <title>U.T.M.B. — Ultra Trail des Mariés Bossi</title>
+  <!-- Appli (écran d'accueil) -->
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon-192.png" type="image/png">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="UTMB">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&family=Inter:wght@400;500;600;700&family=Oswald:wght@500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
-  <link rel="stylesheet" href="style.css?v=1.2.0">
+  <link rel="stylesheet" href="style.css?v=1.3.0">
 </head>
 <body>
 
@@ -43,7 +51,7 @@
     <div class="hero-content">
       <p class="hero-kicker" id="heroLieu"></p>
       <h1 class="hero-title" id="heroTitre">U.T.M.B.</h1>
-      <p class="hero-sub" id="heroSousTitre">Ultra Trail du Mariage Bossi</p>
+      <p class="hero-sub" id="heroSousTitre">Ultra Trail des Mariés Bossi</p>
       <p class="hero-names" id="heroPrenoms"></p>
       <div class="chrono" id="chrono" hidden>
         <div><span id="cJ">0</span><small data-i18n="jours">jours</small></div>
@@ -51,8 +59,25 @@
         <div><span id="cM">00</span><small data-i18n="min">min</small></div>
         <div><span id="cS">00</span><small data-i18n="sec">sec</small></div>
       </div>
+      <!-- Altimètre : l'altitude monte au fil des jours -->
+      <div class="alti" id="alti" hidden>
+        <svg class="alti-svg" viewBox="0 0 300 70" preserveAspectRatio="none" aria-hidden="true">
+          <defs><clipPath id="altiClip"><rect id="altiClipRect" x="0" y="0" width="0" height="70"/></clipPath></defs>
+          <path id="altiBase" class="alti-base"/>
+          <path id="altiFill" class="alti-fill" clip-path="url(#altiClip)"/>
+          <circle id="altiDot" class="alti-dot" r="5" cx="0" cy="62"/>
+        </svg>
+        <div class="alti-txt">
+          <span class="alti-label" data-i18n="alti_label">Altitude du jour</span>
+          <strong><span id="altiVal">0</span> m</strong>
+          <span class="alti-max" id="altiMax"></span>
+        </div>
+      </div>
       <p class="hero-date" id="heroDate"></p>
-      <a href="#parcours" class="btn btn-gold btn-lg" data-i18n="cta">Prendre le départ ↓</a>
+      <div class="hero-ctas">
+        <a href="#parcours" class="btn btn-gold btn-lg" data-i18n="cta">Prendre le départ ↓</a>
+        <button type="button" class="btn btn-glass" id="btnInstall" hidden data-i18n="installer">📲 Installer l'appli</button>
+      </div>
     </div>
     <div class="dossard" id="dossard" hidden>
       <div class="dossard-top" data-i18n="dossard_top">U.T.M.B. · Finisher en devenir</div>
@@ -67,7 +92,7 @@
     <div class="strip" id="strip" hidden><div class="strip-track" id="stripTrack"></div></div>
   </section>
 
-  <!-- Parcours 3D -->
+  <!-- Parcours 3D / 2D -->
   <section class="parcours" id="parcours">
     <div class="section-head">
       <span class="eyebrow" data-i18n="parcours_eyebrow">Le parcours</span>
@@ -79,14 +104,13 @@
     </div>
     <div class="map-wrap">
       <div id="map" class="map" role="region" aria-label="Map 3D"></div>
+      <div id="map2d" class="map map2d" role="region" aria-label="Map 2D" hidden></div>
       <div class="map-tools">
         <button type="button" class="chip" id="btnTour" data-i18n="survol">⟳ Survol</button>
         <button type="button" class="chip" id="btnReset" data-i18n="ensemble">⌂ Vue d'ensemble</button>
+        <button type="button" class="chip" id="btnMode">🗺️ 2D</button>
       </div>
       <aside class="cp-panel" id="cpPanel"></aside>
-      <div class="map-fallback" id="mapFallback" hidden>
-        <p data-i18n="fallback">La carte 3D n'est pas disponible sur cet appareil — le parcours reste accessible ci-dessous.</p>
-      </div>
     </div>
   </section>
 
@@ -103,7 +127,7 @@
   </section>
 
   <footer class="footer">
-    <p>U.T.M.B. · Ultra Trail du Mariage Bossi</p>
+    <p>U.T.M.B. · Ultra Trail des Mariés Bossi</p>
     <p class="footer-small" id="footerVersion"></p>
   </footer>
 
@@ -113,12 +137,25 @@
     <img id="lbImg" alt="">
   </div>
 
+  <!-- Aide installation iPhone -->
+  <div class="modal" id="iosModal" hidden>
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="iosTitre">
+      <button type="button" class="lb-close" id="iosClose" aria-label="✕">✕</button>
+      <h3 id="iosTitre" data-i18n="ios_titre">Ajouter à l'écran d'accueil</h3>
+      <ol>
+        <li data-i18n="ios_1">Touchez le bouton Partager (carré avec une flèche) en bas de Safari.</li>
+        <li data-i18n="ios_2">Choisissez « Sur l'écran d'accueil ».</li>
+        <li data-i18n="ios_3">Touchez « Ajouter » : l'icône UTMB apparaît comme une appli.</li>
+      </ol>
+    </div>
+  </div>
+
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
   <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
-  <script src="cles.js?v=1.2.0"></script>
-  <script src="config.js?v=1.2.0"></script>
-  <script src="i18n.js?v=1.2.0"></script>
-  <script src="app.js?v=1.2.0"></script>
+  <script src="cles.js?v=1.3.0"></script>
+  <script src="config.js?v=1.3.0"></script>
+  <script src="i18n.js?v=1.3.0"></script>
+  <script src="app.js?v=1.3.0"></script>
 </body>
 </html>

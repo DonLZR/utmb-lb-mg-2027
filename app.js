@@ -1,10 +1,11 @@
-/* UTMB — moteur du site V1.2.0 (le contenu se gère dans le Google Sheet) */
+/* UTMB — moteur du site V1.3.0 (le contenu se gère dans le Google Sheet) */
 (() => {
   'use strict';
   const C = window.UTMB_CONFIG, I18N = window.UTMB_I18N, FLAGS = window.UTMB_FLAGS;
   const $ = (s, r = document) => r.querySelector(s);
-  const SEEN_KEY = 'utmb_seen', DOSSARD_KEY = 'utmb_dossard', GATE_KEY = 'utmb_ok', LANG_KEY = 'utmb_lang', SCROLL_KEY = 'utmb_scroll';
-  let DATA = null, map = null, VIEW = null, markers = {}, touring = false, tourRaf = null;
+  const SEEN_KEY = 'utmb_seen', DOSSARD_KEY = 'utmb_dossard', GATE_KEY = 'utmb_ok', LANG_KEY = 'utmb_lang',
+        SCROLL_KEY = 'utmb_scroll', MODE_KEY = 'utmb_mode';
+  let DATA = null, map = null, VIEW = null, markers = {}, touring = false, tourRaf = null, MODE = '3d', deferredInstall = null;
 
   /* ---------- Langue ---------- */
   const LANGS = (C.langues || ['fr']).filter(l => I18N[l]);
@@ -25,7 +26,7 @@
     const u = new URL(location.href);
     u.searchParams.delete('lang');
     history.replaceState(null, '', u.toString());
-    location.reload(); // rechargement forcé, même si l'URL contient un #ancre
+    location.reload();
   }
   function applyStaticI18n() {
     document.documentElement.lang = LANG;
@@ -53,6 +54,26 @@
   const photos = key => (DATA.photos && DATA.photos[key]) || [];
   const toast = (msg, ms = 4000) => { const el = $('#toast'); el.textContent = msg; el.classList.add('show'); clearTimeout(el._h); el._h = setTimeout(() => el.classList.remove('show'), ms); };
   const imgTag = (src, alt = '') => `<img src="${esc(src)}" alt="${esc(alt)}" loading="lazy" data-zoom>`;
+  const fmtNum = n => Number(n).toLocaleString(t('_locale'));
+
+  /* Dates : « 2027-07-24 », « 2027-07-24T15:00 », « 24/07/2027 », « 24/07/2027 15:00 » → heure locale */
+  function parseDate(v) {
+    if (!v) return null;
+    const s = String(v).trim();
+    let m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:[ T](\d{1,2})[:h](\d{2}))?$/);
+    if (m) return new Date(+m[3], +m[2] - 1, +m[1], +(m[4] || 0), +(m[5] || 0));
+    m = s.match(/^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{1,2}):(\d{2}))?/);
+    if (m) return new Date(+m[1], +m[2] - 1, +m[3], +(m[4] || 0), +(m[5] || 0));
+    const d = new Date(s); return isNaN(d) ? null : d;
+  }
+
+  /* Proximité de deux étapes (marqueurs superposés) */
+  const close = (a, b) => Math.abs(a.lat - b.lat) < 0.02 && Math.abs(a.lng - b.lng) < 0.02;
+  const stackedIds = () => {
+    const out = new Set();
+    DATA.etapes.forEach((e, i) => { if (DATA.etapes.slice(0, i).some(p => close(p, e))) out.add(e.id); });
+    return out;
+  };
 
   /* ---------- Porte d'accès ---------- */
   async function sha256(txt) {
@@ -99,7 +120,6 @@
     return d;
   }
 
-  /* Vue de carte : valeurs config.js, remplacées par les lignes carte_… du Sheet si renseignées */
   function computeView() {
     const p = DATA.parametres, v = { ...C.map };
     const b = num(p.carte_orientation), z = num(p.carte_zoom), pi = num(p.carte_inclinaison), r = num(p.carte_relief);
@@ -108,11 +128,38 @@
     if (pi !== null) v.pitch = Math.min(80, Math.max(0, pi));
     if (r !== null) v.exaggeration = Math.min(3, Math.max(0.5, r));
     const c = String(p.carte_centre || '').split(/[;\s]+|,\s+/).map(num).filter(x => x !== null);
-    if (c.length === 2) v.center = [c[1], c[0]]; // saisi « latitude, longitude »
+    if (c.length === 2) v.center = [c[1], c[0]];
     return v;
   }
 
-  /* ---------- Accueil ---------- */
+  /* ---------- Accueil : compte à rebours + altimètre ---------- */
+  const PROFIL = [[0,62],[22,56],[44,59],[68,48],[92,52],[116,41],[140,45],[164,33],[188,37],[212,26],[236,29],[258,17],[280,8],[300,13]];
+  function profilY(x) {
+    for (let i = 1; i < PROFIL.length; i++) {
+      const [x1, y1] = PROFIL[i], [x0, y0] = PROFIL[i - 1];
+      if (x <= x1) return y0 + (y1 - y0) * ((x - x0) / (x1 - x0 || 1));
+    }
+    return PROFIL[PROFIL.length - 1][1];
+  }
+  function initAltimetre() {
+    const d = 'M0,70 ' + PROFIL.map(p => 'L' + p.join(',')).join(' ') + ' L300,70 Z';
+    $('#altiBase').setAttribute('d', d); $('#altiFill').setAttribute('d', d);
+    $('#altiMax').textContent = t('alti_max', { a: fmtNum(C.altitudeSommet) });
+    $('#alti').hidden = false;
+  }
+  function majAltimetre(target) {
+    const start = parseDate(C.departChrono) || new Date();
+    const total = target - start, done = Date.now() - start;
+    const p = total > 0 ? Math.min(1, Math.max(0, done / total)) : 1;
+    const alt = Math.round(C.altitudeDepart + (C.altitudeSommet - C.altitudeDepart) * p);
+    const x = Math.max(3, Math.min(297, p * 300));
+    $('#altiClipRect').setAttribute('width', (p * 300).toFixed(1));
+    $('#altiDot').setAttribute('cx', x.toFixed(1));
+    $('#altiDot').setAttribute('cy', profilY(x).toFixed(1));
+    $('#altiVal').textContent = fmtNum(alt);
+    if (p >= 1) $('#altiMax').textContent = t('alti_top');
+  }
+
   function renderHero() {
     const p = DATA.parametres;
     $('#heroTitre').textContent = p.titre || 'U.T.M.B.';
@@ -123,16 +170,20 @@
     document.title = `${p.titre || 'U.T.M.B.'} — ${p.sous_titre || ''}`;
     $('#footerVersion').textContent = 'v' + C.version;
 
-    const target = p.date_mariage ? new Date(p.date_mariage) : null;
-    if (target && !isNaN(target)) {
+    const target = parseDate(p.date_mariage) || parseDate(C.dateMariage);
+    if (target) {
       $('#heroDate').textContent = target.toLocaleDateString(t('_locale'), { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
       $('#chrono').hidden = false;
+      initAltimetre();
+      let last = -1;
       const tick = () => {
         let s = Math.max(0, Math.floor((target - Date.now()) / 1000));
         $('#cJ').textContent = Math.floor(s / 86400); s %= 86400;
         $('#cH').textContent = String(Math.floor(s / 3600)).padStart(2, '0'); s %= 3600;
         $('#cM').textContent = String(Math.floor(s / 60)).padStart(2, '0');
         $('#cS').textContent = String(s % 60).padStart(2, '0');
+        const minute = Math.floor(Date.now() / 60000);
+        if (minute !== last) { last = minute; majAltimetre(target); }
       };
       tick(); setInterval(tick, 1000);
     }
@@ -161,14 +212,52 @@
     $('#dossardName').textContent = d.nom;
   }
 
-  /* ---------- Navigation ---------- */
+  /* ---------- Installation en appli ---------- */
+  function initInstall() {
+    const btn = $('#btnInstall');
+    const standalone = matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+    const ios = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
+    if (standalone) return;
+    if (ios) btn.hidden = false;
+    addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferredInstall = e; btn.hidden = false; });
+    addEventListener('appinstalled', () => { btn.hidden = true; deferredInstall = null; toast(t('installe')); });
+    btn.addEventListener('click', async () => {
+      if (deferredInstall) {
+        deferredInstall.prompt();
+        try { const r = await deferredInstall.userChoice; if (r.outcome === 'accepted') btn.hidden = true; } catch (e) {}
+        deferredInstall = null;
+      } else { $('#iosModal').hidden = false; }
+    });
+    const closeModal = () => { $('#iosModal').hidden = true; };
+    $('#iosClose').addEventListener('click', closeModal);
+    $('#iosModal').addEventListener('click', e => { if (e.target.id === 'iosModal') closeModal(); });
+  }
+
+  /* ---------- Navigation (pastilles sur mobile) ---------- */
   function renderNav() {
-    $('#navLinks').innerHTML = DATA.etapes.map(e =>
-      `<a href="#${esc(e.id)}" class="${isOpen(e) ? '' : 'locked'}">${isOpen(e) ? '' : '🔒 '}${esc(e.titre)}</a>`).join('') +
-      (hasGalerie() ? `<a href="#galerie">${esc(t('galerie'))}</a>` : '');
+    $('#navLinks').innerHTML = DATA.etapes.map((e, i) => {
+      const open = isOpen(e);
+      return `<a href="#${esc(e.id)}" class="${open ? '' : 'locked'}" title="${esc(e.titre)}" aria-label="${i + 1}. ${esc(e.titre)}">` +
+        `<span class="nl-num" aria-hidden="true">${open ? i + 1 : '🔒'}</span><span class="nl-txt">${open ? '' : '🔒 '}${esc(e.titre)}</span></a>`;
+    }).join('') +
+      (hasGalerie() ? `<a href="#galerie" class="nl-gal" title="${esc(t('galerie'))}" aria-label="${esc(t('galerie'))}"><span class="nl-num" aria-hidden="true">📷</span><span class="nl-txt">${esc(t('galerie'))}</span></a>` : '');
     const nav = $('#nav');
     const upd = () => nav.classList.toggle('scrolled', scrollY > 60);
     addEventListener('scroll', upd, { passive: true }); upd();
+  }
+  function initScrollSpy() {
+    if (!('IntersectionObserver' in window)) return;
+    const links = [...document.querySelectorAll('#navLinks a')];
+    const io = new IntersectionObserver(entries => {
+      entries.forEach(en => {
+        if (!en.isIntersecting) return;
+        links.forEach(a => a.classList.toggle('current', a.getAttribute('href') === '#' + en.target.id));
+        const a = links.find(l => l.classList.contains('current')), box = $('#navLinks');
+        if (a && box.scrollWidth > box.clientWidth) box.scrollTo({ left: a.offsetLeft - box.clientWidth / 2, behavior: 'smooth' });
+      });
+    }, { rootMargin: '-45% 0px -50% 0px' });
+    document.querySelectorAll('.stage, #galerie').forEach(s => io.observe(s));
   }
 
   /* ---------- Progression ---------- */
@@ -198,7 +287,8 @@
   function selectStage(id, fly) {
     const e = DATA.etapes.find(x => x.id === id); if (!e) return;
     document.querySelectorAll('.cp').forEach(b => b.classList.toggle('active', b.dataset.id === id));
-    if (fly && map && !isNaN(e.lat)) {
+    document.querySelectorAll('.m2-mk').forEach(g => g.classList.toggle('active', g.dataset.id === id));
+    if (fly && MODE === '3d' && map && !isNaN(e.lat)) {
       stopTour();
       map.flyTo({ center: [e.lng, e.lat], zoom: 12.6, pitch: 66, bearing: VIEW.bearing + 20, duration: 2800, essential: true });
     }
@@ -209,9 +299,92 @@
     else if (btn) { document.querySelectorAll('.cp').forEach(b => delete b.dataset.armed); btn.dataset.armed = '1'; }
   }
 
+  /* ---------- Mode carte 2D / 3D ---------- */
+  const WEBGL = (() => { try { const c = document.createElement('canvas'); return !!(c.getContext('webgl2') || c.getContext('webgl')); } catch (e) { return false; } })();
+  const LOW_END = (navigator.deviceMemory && navigator.deviceMemory <= 2) || (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 2);
+  const CAN_3D = WEBGL && !!window.maplibregl;
+
+  function setMode(m, info) {
+    MODE = (m === '3d' && CAN_3D) ? '3d' : '2d';
+    const is3d = MODE === '3d';
+    $('#map').hidden = !is3d; $('#map2d').hidden = is3d;
+    $('#btnTour').hidden = !is3d; $('#btnReset').hidden = !is3d;
+    $('#btnMode').hidden = !CAN_3D;
+    $('#btnMode').textContent = is3d ? t('mode2d') : t('mode3d');
+    if (is3d) { stopTour(); if (!map) initMap(); else map.resize(); }
+    else { stopTour(); render2D(); if (info) toast(t('info2d'), 3500); }
+  }
+  function initModes() {
+    const saved = localStorage.getItem(MODE_KEY);
+    const start = !CAN_3D ? '2d' : (saved || (LOW_END ? '2d' : '3d'));
+    setMode(start, !CAN_3D);
+    let rz;
+    addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => { if (MODE === '2d') { delete $('#map2d').dataset.ok; render2D(); } }, 250); });
+    $('#btnMode').addEventListener('click', () => {
+      const next = MODE === '3d' ? '2d' : '3d';
+      localStorage.setItem(MODE_KEY, next); setMode(next);
+    });
+  }
+
+  /* ---------- Carte 2D (secours, sans WebGL) ---------- */
+  function render2D() {
+    const box = $('#map2d');
+    if (box.dataset.ok) return;
+    const pts = C.route.concat(DATA.etapes.filter(e => !isNaN(e.lat)).map(e => [e.lng, e.lat]));
+    const lngs = pts.map(p => p[0]), lats = pts.map(p => p[1]);
+    const minLng = Math.min(...lngs), maxLng = Math.max(...lngs), minLat = Math.min(...lats), maxLat = Math.max(...lats);
+    const k = Math.cos(((minLat + maxLat) / 2) * Math.PI / 180);
+    const S = 1000 / ((maxLng - minLng) * k);
+    const X = lng => (lng - minLng) * k * S, Y = lat => (maxLat - lat) * S;
+    const H = (maxLat - minLat) * S;
+    const wide = matchMedia('(min-width:821px)').matches;
+    const pad = 90, padR = wide ? 520 : 90;
+    const vb = `${-pad} ${-pad} ${1000 + pad + padR} ${H + pad * 2}`;
+    const vbW = 1000 + pad + padR, vbH = H + pad * 2;
+    const u = Math.max(vbW / Math.max(280, box.clientWidth || 360), vbH / Math.max(300, box.clientHeight || 460)); // 1 px écran en unités SVG
+    const fs = px => (px * u).toFixed(1);
+    const line = arr => arr.map((p, i) => (i ? 'L' : 'M') + X(p[0]).toFixed(1) + ',' + Y(p[1]).toFixed(1)).join(' ');
+
+    const open = DATA.etapes.filter(isOpen), last = open[open.length - 1];
+    let cut = 0;
+    if (last && !isNaN(last.lat)) {
+      let best = Infinity;
+      C.route.forEach((p, i) => { const d = (p[0] - last.lng) ** 2 + (p[1] - last.lat) ** 2; if (d < best) { best = d; cut = i; } });
+      if (last === DATA.etapes[DATA.etapes.length - 1]) cut = C.route.length - 1;
+    }
+    const mbx = X(6.8652), mby = Y(45.8326);
+    const rings = [60, 120, 185, 255, 330, 410].map((r, i) => `<ellipse class="m2-ring" cx="${mbx}" cy="${mby}" rx="${r * 1.25}" ry="${r}" transform="rotate(${-20 + i * 4} ${mbx} ${mby})"/>`).join('');
+    const stacked = stackedIds();
+    const order = DATA.etapes.map((e, i) => ({ e, i })).filter(o => !isNaN(o.e.lat))
+      .sort((a, b) => (isOpen(a.e) - isOpen(b.e)) || (b.i - a.i)); // verrouillées dessous, étape 1 au-dessus
+    const mk = order.map(({ e, i }) => {
+      const st = statut(e), locked = st === 'verrouille';
+      const dx = stacked.has(e.id) ? 20 * u : 0, dy = stacked.has(e.id) ? -14 * u : 0;
+      const x = X(e.lng) + dx, y = Y(e.lat) + dy, r = (locked ? 13 : 16) * u;
+      return `<g class="m2-mk ${locked ? 'locked' : st}" data-id="${esc(e.id)}" tabindex="0" role="button" aria-label="${esc(e.titre)}">
+        <circle cx="${x}" cy="${y}" r="${r}"/><text x="${x}" y="${y}" font-size="${fs(locked ? 11 : 14)}">${locked ? '🔒' : i + 1}</text>
+        <text class="m2-lbl" x="${x}" y="${locked ? y - r - 6 * u : y + r + 12 * u}" font-size="${fs(11)}" stroke-width="${fs(3)}">${esc(e.lieu || e.titre)}</text></g>`;
+    }).join('');
+    box.innerHTML = `<svg viewBox="${vb}" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Map 2D">
+      ${rings}
+      <path d="M${mbx - 12 * u},${mby + 8 * u} L${mbx},${mby - 10 * u} L${mbx + 12 * u},${mby + 8 * u} Z" fill="rgba(255,255,255,.85)"/>
+      <text class="m2-summit" x="${mbx + 16 * u}" y="${mby + 4 * u}" font-size="${fs(11)}" stroke-width="${fs(3)}">❄️ Mont Blanc</text>
+      <path class="m2-glow" d="${line(C.route)}"/>
+      <path class="m2-route" d="${line(C.route)}"/>
+      ${cut > 0 ? `<path class="m2-done" d="${line(C.route.slice(0, cut + 1))}"/>` : ''}
+      ${mk}</svg>`;
+    box.dataset.ok = '1';
+    if (box.dataset.ev) return;
+    box.dataset.ev = '1';
+    box.addEventListener('click', ev => { const g = ev.target.closest('.m2-mk'); if (g) selectStage(g.dataset.id, false); });
+    box.addEventListener('keydown', ev => {
+      const g = ev.target.closest('.m2-mk');
+      if (g && (ev.key === 'Enter' || ev.key === ' ')) { ev.preventDefault(); selectStage(g.dataset.id, false); }
+    });
+  }
+
   /* ---------- Carte 3D ---------- */
   function initMap() {
-    if (!window.maplibregl) return fallbackMap();
     VIEW = computeView();
     try {
       map = new maplibregl.Map({
@@ -238,12 +411,12 @@
           terrain: { source: 'dem', exaggeration: VIEW.exaggeration }
         }
       });
-    } catch (e) { return fallbackMap(); }
-    map.on('error', ev => { if (String(ev?.error?.message || '').includes('WebGL')) fallbackMap(); });
+    } catch (e) { map = null; return setMode('2d', true); }
+    map.on('error', ev => { if (String(ev?.error?.message || '').includes('WebGL')) setMode('2d', true); });
     map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'bottom-left');
 
     map.on('load', () => {
-      map.jumpTo({ center: VIEW.center, zoom: VIEW.zoom, pitch: VIEW.pitch, bearing: VIEW.bearing }); // vue initiale imposée
+      map.jumpTo({ center: VIEW.center, zoom: VIEW.zoom, pitch: VIEW.pitch, bearing: VIEW.bearing });
 
       const route = C.route;
       const open = DATA.etapes.filter(isOpen), last = open[open.length - 1];
@@ -262,35 +435,40 @@
       const s = document.createElement('div'); s.className = 'summit'; s.innerHTML = '❄️ <span>Mont Blanc</span>';
       new maplibregl.Marker({ element: s }).setLngLat([6.8652, 45.8326]).addTo(map);
 
-      DATA.etapes.forEach((e, i) => {
-        if (isNaN(e.lat) || isNaN(e.lng)) return;
-        const el = document.createElement('div');
-        const pin = document.createElement('div');
-        pin.className = 'marker ' + (statut(e) === 'verrouille' ? 'locked' : statut(e));
-        pin.innerHTML = `${statut(e) === 'verrouille' ? '🔒' : i + 1}<span class="marker-label">${esc(e.lieu || e.titre)}</span>`;
-        pin.setAttribute('role', 'button'); pin.setAttribute('aria-label', e.titre); pin.tabIndex = 0;
-        el.appendChild(pin);
-        el.addEventListener('click', ev => { ev.stopPropagation(); selectStage(e.id, true); });
-        markers[e.id] = new maplibregl.Marker({ element: el }).setLngLat([e.lng, e.lat]).addTo(map);
-      });
-
-      announceNew();
+      /* Ordre d'empilement : verrouillées d'abord (dessous), puis ouvertes, étape 1 en dernier (dessus) */
+      const stacked = stackedIds();
+      DATA.etapes.map((e, i) => ({ e, i })).filter(o => !isNaN(o.e.lat) && !isNaN(o.e.lng))
+        .sort((a, b) => (isOpen(a.e) - isOpen(b.e)) || (b.i - a.i))
+        .forEach(({ e, i }) => {
+          const st = statut(e), locked = st === 'verrouille';
+          const el = document.createElement('div');
+          el.style.zIndex = String((locked ? 100 : 1000) - i);
+          const pin = document.createElement('div');
+          pin.className = 'marker ' + (locked ? 'locked' : st);
+          pin.innerHTML = `${locked ? '🔒' : i + 1}<span class="marker-label">${esc(e.lieu || e.titre)}</span>`;
+          pin.setAttribute('role', 'button'); pin.setAttribute('aria-label', e.titre); pin.tabIndex = 0;
+          el.appendChild(pin);
+          el.addEventListener('click', ev => { ev.stopPropagation(); selectStage(e.id, true); });
+          const opts = { element: el };
+          if (stacked.has(e.id)) opts.offset = [26, -18]; // décale le marqueur superposé
+          markers[e.id] = new maplibregl.Marker(opts).setLngLat([e.lng, e.lat]).addTo(map);
+        });
     });
     ['mousedown', 'touchstart', 'wheel'].forEach(ev => map.getCanvas().addEventListener(ev, stopTour, { passive: true }));
   }
-  function fallbackMap() { $('#mapFallback').hidden = false; $('#btnTour').hidden = true; $('#btnReset').hidden = true; }
 
   function announceNew() {
     const seen = JSON.parse(localStorage.getItem(SEEN_KEY) || '[]');
     const fresh = DATA.etapes.filter(e => statut(e) === 'nouveau' && !seen.includes(e.id));
     if (fresh.length) {
       const e = fresh[fresh.length - 1];
-      setTimeout(() => { toast(t('toast_new', { t: e.titre }), 5000); selectStage(e.id, true); }, 1500);
+      const go = () => setTimeout(() => { toast(t('toast_new', { t: e.titre }), 5000); selectStage(e.id, true); }, 1500);
+      if (MODE === '3d' && map && !map.loaded()) map.once('load', go); else go();
     }
     localStorage.setItem(SEEN_KEY, JSON.stringify(DATA.etapes.filter(isOpen).map(e => e.id)));
   }
   function startTour() {
-    if (!map) return; touring = true; $('#btnTour').classList.add('on');
+    if (!map || MODE !== '3d') return; touring = true; $('#btnTour').classList.add('on');
     const step = () => { if (!touring) return; map.setBearing(map.getBearing() + 0.08); tourRaf = requestAnimationFrame(step); };
     step();
   }
@@ -325,7 +503,6 @@
     </form>`;
   }
   function hebergementForm() {
-    // Les "value" restent en français pour garder un Sheet homogène
     return `<form class="form" data-type="hebergement" novalidate>
       <div class="form-row">
         <label>${esc(t('f_nom'))}<input name="nom" required maxlength="80" autocomplete="name"></label>
@@ -435,18 +612,20 @@
       const img = e.target.closest('img[data-zoom]'); if (!img) return;
       $('#lbImg').src = img.src.replace(/sz=w\d+/, 'sz=w2400'); $('#lightbox').hidden = false;
     });
-    const close = () => { $('#lightbox').hidden = true; $('#lbImg').src = ''; };
-    $('#lbClose').addEventListener('click', close);
-    $('#lightbox').addEventListener('click', e => { if (e.target.id === 'lightbox') close(); });
-    addEventListener('keydown', e => { if (e.key === 'Escape') close(); });
+    const closeLb = () => { $('#lightbox').hidden = true; $('#lbImg').src = ''; };
+    $('#lbClose').addEventListener('click', closeLb);
+    $('#lightbox').addEventListener('click', e => { if (e.target.id === 'lightbox') closeLb(); });
+    addEventListener('keydown', e => { if (e.key === 'Escape') { closeLb(); $('#iosModal').hidden = true; } });
   }
 
   /* ---------- Démarrage ---------- */
   async function start() {
     applyStaticI18n();
+    initInstall();
     await gate();
     DATA = prepare(await loadData());
-    renderHero(); renderNav(); renderProgress(); renderPanel(); renderSections(); renderGalerie(); initLightbox(); initMap();
+    renderHero(); renderNav(); renderProgress(); renderPanel(); renderSections(); renderGalerie(); initLightbox();
+    initModes(); initScrollSpy(); announceNew();
     $('#btnTour').addEventListener('click', () => touring ? stopTour() : startTour());
     $('#btnReset').addEventListener('click', () => { stopTour(); map && VIEW && map.flyTo({ center: VIEW.center, zoom: VIEW.zoom, pitch: VIEW.pitch, bearing: VIEW.bearing, duration: 2200 }); });
     const y = sessionStorage.getItem(SCROLL_KEY);

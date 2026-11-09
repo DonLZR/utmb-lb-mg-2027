@@ -1,15 +1,17 @@
 # UTMB – Journal des versions
 
+## V1.3.0 — Compte à rebours altimétrique, 2D, appli, mobile
+- « Ultra Trail des Mariés Bossi » partout (titre d'onglet, accueil, pied de page, démo, appli)
+- Compte à rebours vers le 24/07/2027 (date du Sheet prioritaire) + altimètre : l'altitude monte de Chamonix (1 035 m) au sommet du Mont Blanc au fil des jours
+- Carte 2D de secours : automatique sur les appareils sans 3D ou peu puissants, + bouton 2D / 3D
+- Site installable en appli (bouton « Installer l'appli » ; instructions dédiées sur iPhone)
+- Drapeau chilien pour l'espagnol ; textes d'interface en espagnol d'Amérique latine (ustedes)
+- Carte : l'étape 1 passe devant l'arrivée verrouillée (marqueurs superposés décalés)
+- Mobile : étapes en pastilles numérotées dans le bandeau du haut, toutes visibles d'un coup, avec suivi de la section en cours
+- Code.gs : textes par défaut uniquement (redéploiement facultatif)
+
 ## V1.2.0 — Process allégé + correctifs
-- Correctif : clic sur un drapeau → changement de langue immédiat (rechargement forcé, même avec un #ancre dans l'URL)
-- Correctif : vue initiale de la carte imposée après chargement (côté Chamonix)
-- Réglages de la carte pilotables depuis le Sheet (onglet Parametres : carte_orientation, carte_zoom, carte_inclinaison, carte_relief, carte_centre)
-- Clés personnelles déplacées dans cles.js (jamais livré, jamais écrasé)
-- Anti-cache : fichiers chargés avec ?v=version (plus besoin de Ctrl+F5)
-- Traduction : ponctuation/espaces corrigés, cache de traduction renouvelé
-- ⚠️ Code.gs modifié → coller + New version + menu 🏔️ UTMB › Mettre à jour la structure
+- Drapeaux réparés, réglages de carte dans le Sheet, cles.js, anti-cache, correctifs de traduction
 
 ## V1.1.0 — Vue Chamonix & multilingue
-- Sélecteur FR / IT / ES, interface traduite, contenu traduit automatiquement
-
 ## V1.0.0 — Lancement
