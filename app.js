@@ -1,4 +1,4 @@
-/* UTMB — moteur du site V1.4.1 (le contenu se gère dans le Google Sheet) */
+/* UTMB — moteur du site V1.5.1 (le contenu se gère dans le Google Sheet) */
 (() => {
   'use strict';
   const C = window.UTMB_CONFIG, I18N = window.UTMB_I18N, FLAGS = window.UTMB_FLAGS;
@@ -212,8 +212,12 @@
     const bg = $('#heroBg'), imgs = photos('accueil');
     clearInterval(slideTimer);
     bg.classList.toggle('empty', !imgs.length);
-    bg.innerHTML = imgs.map((u, i) => `<img src="${esc(sized(u, ecranW()))}" alt="" decoding="async"${i ? ' loading="lazy"' : ' fetchpriority="high"'}>`).join('');
-    const els = bg.querySelectorAll('img');
+    /* Photo affichée en entier (sans recadrage) ; les bords sont comblés par la même photo, floutée */
+    bg.innerHTML = imgs.map((u, i) => {
+      const src = esc(sized(u, ecranW()));
+      return `<div class="slide" style="--bg:url('${src}')"><img src="${src}" alt="" decoding="async"${i ? ' loading="lazy"' : ' fetchpriority="high"'}></div>`;
+    }).join('');
+    const els = bg.querySelectorAll('.slide');
     if (els.length) {
       let k = 0; els[0].classList.add('on');
       if (els.length > 1) slideTimer = setInterval(() => { els[k].classList.remove('on'); k = (k + 1) % els.length; els[k].classList.add('on'); }, 6000);
@@ -221,12 +225,21 @@
 
     const strip = photos('bandeau');
     $('#strip').hidden = !strip.length;
-    const html = strip.map(u => imgTag(u)).join('');
-    $('#stripTrack').innerHTML = html + html;
+    $('#stripTrack').innerHTML = stripTrack(strip);
+    $('#stripTrack').style.animationDuration = stripDuree(strip) + 's';
 
     const d = JSON.parse(localStorage.getItem(DOSSARD_KEY) || 'null');
     if (d) showDossard(d);
   }
+  /* Bandeau défilant : photos répétées pour toujours remplir la largeur, boucle sans à-coup */
+  function stripBase(list) { let b = list.slice(); while (b.length && b.length < 8) b = b.concat(list); return b; }
+  function stripTrack(list) { const h = stripBase(list).map(u => imgTag(u)).join(''); return h + h; }
+  function stripDuree(list) { return Math.max(30, stripBase(list).length * 6); }
+  function stripHtml(list) {
+    if (!list.length) return '';
+    return `<div class="strip strip-in"><div class="strip-track" style="animation-duration:${stripDuree(list)}s">${stripTrack(list)}</div></div>`;
+  }
+
   function showDossard(d) {
     $('#dossard').hidden = false;
     $('#dossardNum').textContent = String(d.num).padStart(3, '0');
@@ -368,25 +381,35 @@
     });
   }
 
-  /* ---------- Carte 2D (secours, sans WebGL) ---------- */
+  /* ---------- Carte 2D (secours, sans WebGL) : photo aérienne + parcours ---------- */
+  const TUILE = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/';
   function render2D() {
     const box = $('#map2d');
     if (box.dataset.ok) return;
+    const Z = 11, W = 256 * Math.pow(2, Z);                       // coordonnées « pixels » Web Mercator au zoom 11
+    const X = lng => (lng + 180) / 360 * W;
+    const Y = lat => { const r = lat * Math.PI / 180; return (1 - Math.log(Math.tan(r) + 1 / Math.cos(r)) / Math.PI) / 2 * W; };
     const pts = C.route.concat(DATA.etapes.filter(e => !isNaN(e.lat)).map(e => [e.lng, e.lat]));
-    const lngs = pts.map(p => p[0]), lats = pts.map(p => p[1]);
-    const minLng = Math.min(...lngs), maxLng = Math.max(...lngs), minLat = Math.min(...lats), maxLat = Math.max(...lats);
-    const k = Math.cos(((minLat + maxLat) / 2) * Math.PI / 180);
-    const S = 1000 / ((maxLng - minLng) * k);
-    const X = lng => (lng - minLng) * k * S, Y = lat => (maxLat - lat) * S;
-    const H = (maxLat - minLat) * S;
+    const xs = pts.map(p => X(p[0])), ys = pts.map(p => Y(p[1]));
+    let x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
+    const span = Math.max(x1 - x0, y1 - y0), pad = span * 0.12;
     const wide = matchMedia('(min-width:821px)').matches;
-    const pad = 90, padR = wide ? 520 : 90;
-    const vb = `${-pad} ${-pad} ${1000 + pad + padR} ${H + pad * 2}`;
-    const vbW = 1000 + pad + padR, vbH = H + pad * 2;
-    const u = Math.max(vbW / Math.max(280, box.clientWidth || 360), vbH / Math.max(300, box.clientHeight || 460)); // 1 px écran en unités SVG
-    const fs = px => (px * u).toFixed(1);
+    x0 -= pad; y0 -= pad; y1 += pad; x1 += wide ? span * 0.62 : pad;   // place pour le panneau des étapes (ordinateur)
+    /* Cadre ajusté aux proportions de l'écran : la photo remplit tout, sans bande vide */
+    const bw = Math.max(280, box.clientWidth || 360), bh = Math.max(300, box.clientHeight || 460);
+    let vw = x1 - x0, vh = y1 - y0;
+    if (vw / vh < bw / bh) { const n = vh * bw / bh; x0 -= (n - vw) / 2; vw = n; } else { const n = vw * bh / bw; y0 -= (n - vh) / 2; vh = n; }
+    const u = vw / bw, fs = px => (px * u).toFixed(2);           // 1 px écran en unités de la carte
+    /* Tuiles satellite couvrant le cadre */
+    /* Niveau de détail adapté à l'écran (moins de tuiles = chargement plus léger) */
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    const dz = Math.max(0, Math.min(2, Math.floor(Math.log2(Math.max(1, 1.5 * u / dpr)))));
+    const tz = Z - dz, ts = 256 * Math.pow(2, dz);                // taille d'une tuile en unités de la carte
+    const t0x = Math.floor(x0 / ts), t1x = Math.floor((x0 + vw) / ts), t0y = Math.floor(y0 / ts), t1y = Math.floor((y0 + vh) / ts);
+    let tiles = '';
+    for (let tx = t0x; tx <= t1x; tx++) for (let ty = t0y; ty <= t1y; ty++)
+      tiles += `<image href="${TUILE}${tz}/${ty}/${tx}" x="${tx * ts}" y="${ty * ts}" width="${ts + 0.6}" height="${ts + 0.6}" preserveAspectRatio="none"/>`;
     const line = arr => arr.map((p, i) => (i ? 'L' : 'M') + X(p[0]).toFixed(1) + ',' + Y(p[1]).toFixed(1)).join(' ');
-
     const open = DATA.etapes.filter(isOpen), last = open[open.length - 1];
     let cut = 0;
     if (last && !isNaN(last.lat)) {
@@ -395,7 +418,6 @@
       if (last === DATA.etapes[DATA.etapes.length - 1]) cut = C.route.length - 1;
     }
     const mbx = X(6.8652), mby = Y(45.8326);
-    const rings = [60, 120, 185, 255, 330, 410].map((r, i) => `<ellipse class="m2-ring" cx="${mbx}" cy="${mby}" rx="${r * 1.25}" ry="${r}" transform="rotate(${-20 + i * 4} ${mbx} ${mby})"/>`).join('');
     const stacked = stackedIds();
     const order = DATA.etapes.map((e, i) => ({ e, i })).filter(o => !isNaN(o.e.lat))
       .sort((a, b) => (isOpen(a.e) - isOpen(b.e)) || (b.i - a.i)); // verrouillées dessous, étape 1 au-dessus
@@ -407,14 +429,15 @@
         <circle cx="${x}" cy="${y}" r="${r}"/><text x="${x}" y="${y}" font-size="${fs(locked ? 11 : 14)}">${locked ? '🔒' : i + 1}</text>
         <text class="m2-lbl" x="${x}" y="${locked ? y - r - 6 * u : y + r + 12 * u}" font-size="${fs(11)}" stroke-width="${fs(3)}">${esc(e.lieu || e.titre)}</text></g>`;
     }).join('');
-    box.innerHTML = `<svg viewBox="${vb}" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Map 2D">
-      ${rings}
-      <path d="M${mbx - 12 * u},${mby + 8 * u} L${mbx},${mby - 10 * u} L${mbx + 12 * u},${mby + 8 * u} Z" fill="rgba(255,255,255,.85)"/>
-      <text class="m2-summit" x="${mbx + 16 * u}" y="${mby + 4 * u}" font-size="${fs(11)}" stroke-width="${fs(3)}">❄️ Mont Blanc</text>
+    box.innerHTML = `<svg viewBox="${x0.toFixed(1)} ${y0.toFixed(1)} ${vw.toFixed(1)} ${vh.toFixed(1)}" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Map 2D">
+      <g class="m2-photo">${tiles}</g>
+      <rect class="m2-voile" x="${x0}" y="${y0}" width="${vw}" height="${vh}"/>
+      <path d="M${mbx - 9 * u},${mby + 6 * u} L${mbx},${mby - 8 * u} L${mbx + 9 * u},${mby + 6 * u} Z" fill="rgba(255,255,255,.9)"/>
+      <text class="m2-summit" x="${mbx + 13 * u}" y="${mby + 4 * u}" font-size="${fs(11)}" stroke-width="${fs(3)}">Mont Blanc</text>
       <path class="m2-glow" d="${line(C.route)}"/>
       <path class="m2-route" d="${line(C.route)}"/>
       ${cut > 0 ? `<path class="m2-done" d="${line(C.route.slice(0, cut + 1))}"/>` : ''}
-      ${mk}</svg>`;
+      ${mk}</svg><span class="m2-credit">${esc(t('imagerie'))}</span>`;
     box.dataset.ok = '1';
     if (box.dataset.ev) return;
     box.dataset.ev = '1';
@@ -614,12 +637,11 @@
   function hebergementsHtml() {
     const h = DATA.hebergements.filter(x => x.nom && norm(x.visible) !== 'non');
     if (!h.length) return '';
-    return `<div class="cards">${h.map(x => `<article class="card">
-      ${x.type ? `<span class="tag">${esc(x.type)}</span>` : ''}
-      <h3>${esc(x.nom)}</h3>
-      <span class="meta">${[x.distance, x.prix].filter(Boolean).map(esc).join(' · ')}</span>
-      ${x.description ? `<span>${esc(x.description)}</span>` : ''}
-      ${x.lien ? `<a href="${esc(x.lien)}" target="_blank" rel="noopener">${esc(t('voir_reserver'))}</a>` : ''}
+    return `<div class="rows">${h.map(x => `<article class="row">
+      <div class="row-id">${x.type ? `<span class="tag">${esc(x.type)}</span>` : ''}<h3>${esc(x.nom)}</h3>
+        ${[x.distance, x.prix].filter(Boolean).length ? `<span class="meta">${[x.distance, x.prix].filter(Boolean).map(esc).join(' · ')}</span>` : ''}</div>
+      <p class="row-desc">${x.description ? esc(x.description) : ''}</p>
+      ${x.lien ? `<a class="row-lien" href="${esc(x.lien)}" target="_blank" rel="noopener">${esc(t('voir_reserver'))}</a>` : '<span></span>'}
     </article>`).join('')}</div>`;
   }
   function programmeHtml() {
@@ -640,7 +662,7 @@
         body = md(e.contenu || '');
         const ty = norm(e.type);
         if (ty === 'presence') body += formHtml('presence');
-        if (ty === 'hebergement') body += hebergementsHtml() + formHtml('hebergement');
+        if (ty === 'hebergement') body += hebergementsHtml() + stripHtml(photos('hebergement')) + formHtml('hebergement');
         if (ty.startsWith('formulaire')) body += formHtml(ty.split(':')[1]?.trim() || '');
         if (ty === 'plan') body += photosHtml('plan');
         if (ty === 'programme') body += programmeHtml();

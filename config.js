@@ -1,10 +1,10 @@
 /* =========================================================
-   UTMB – Ultra Trail des Mariés Bossi — config.js
+   UTMB – Ultra Trail du Mariage Bossi — config.js
    Tes clés sont dans cles.js (jamais livré). Les réglages du Sheet
    (onglet Parametres) priment sur les valeurs ci-dessous.
    ========================================================= */
 window.UTMB_CONFIG = {
-  version: "1.4.1",
+  version: "1.5.1",
 
   apiUrl: (window.UTMB_CLES && window.UTMB_CLES.apiUrl) || "",
   accessCodeHash: (window.UTMB_CLES && window.UTMB_CLES.accessCodeHash) || "",
@@ -43,7 +43,7 @@ window.UTMB_CONFIG = {
   demo: {
     parametres: {
       titre: "U.T.M.B.",
-      sous_titre: "Ultra Trail des Mariés Bossi",
+      sous_titre: "Ultra Trail du Mariage Bossi",
       prenoms: "[Prénom] & [Prénom]",
       date_mariage: "",
       lieu: "Bretagne — [à compléter]",
@@ -57,9 +57,9 @@ window.UTMB_CONFIG = {
         contenu:"Pas de dossard sans inscription ! Dites-nous si vous serez sur la ligne de départ.", lien_libelle:"", lien_url:"" },
       { id:"etape-3", ordre:3, cp:"Refuge", lieu:"Courmayeur", km:81, altitude:1190, titre:"Hébergement", sous_titre:"Où poser le sac", type:"hebergement", statut:"ouvert", indice:"", lat:45.7917, lng:6.9722,
         contenu:"Voici quelques adresses pour récupérer après l'effort.", lien_libelle:"", lien_url:"" },
-      { id:"etape-4", ordre:4, cp:"Ravito 2", lieu:"Champex-Lac", km:126, altitude:1470, titre:"Plan du site", sous_titre:"Repérage du terrain", type:"plan", statut:"verrouille", indice:"Débloqué prochainement", lat:46.0300, lng:7.1170,
+      { id:"etape-4", ordre:4, cp:"Ravito 2", lieu:"Champex-Lac", km:126, altitude:1470, titre:"Programme", sous_titre:"Le Jour J minute par minute", type:"programme", statut:"verrouille", indice:"Débloqué prochainement", lat:46.0300, lng:7.1170,
         contenu:"", lien_libelle:"", lien_url:"" },
-      { id:"etape-5", ordre:5, cp:"Arrivée", lieu:"Chamonix", km:171, altitude:1035, titre:"Programme", sous_titre:"Le Jour J minute par minute", type:"programme", statut:"verrouille", indice:"Débloqué prochainement", lat:45.9300, lng:6.8760,
+      { id:"etape-5", ordre:5, cp:"Arrivée", lieu:"Chamonix", km:171, altitude:1035, titre:"Plan du site", sous_titre:"Repérage du terrain", type:"plan", statut:"verrouille", indice:"Débloqué prochainement", lat:45.9300, lng:6.8760,
         contenu:"", lien_libelle:"", lien_url:"" }
     ],
     hebergements: [

@@ -1,5 +1,21 @@
 # UTMB – Journal des versions
 
+## V1.5.1 — Renommage
+- « Ultra Trail du Mariage Bossi » partout (titre d'onglet, accueil, pied de page, données de démo, Code.gs)
+- ⚠️ Le sous-titre affiché vient du Sheet : Parametres › sous_titre à modifier à la main
+
+## V1.5.0 — Accueil, 2D aérienne, hébergements
+- Accueil : photo affichée en entier (plus de recadrage ni d'effet zoom), bords comblés par la même photo floutée
+- Bouton « Prendre le départ » : en bas de la fenêtre (ordinateur), à cheval entre la photo et le site (téléphone)
+- Bouton « Installer l'appli » : discret, en haut à gauche sous U·T·M·B et les drapeaux
+- Carte 2D : photo aérienne du massif (tuiles satellite Esri, sans WebGL), niveau de détail adapté à l'écran
+- Hébergements : une ligne par hébergement ; bandeau photo défilant entre la liste et le formulaire (dossier Drive « hebergement »)
+- Bandeaux défilants : photos répétées pour toujours remplir la largeur, vitesse adaptée au nombre de photos
+- Nom de l'appli installée : « Wedding L&M »
+- Données de démonstration : étapes 4 et 5 inversées (Programme puis Plan du site)
+- Livraison sans dossier icons ni cles.exemple.js
+- Code.gs inchangé (pas de redéploiement)
+
 ## V1.4.1 — Performance & corrections
 - Chargement : accueil (titres, compte à rebours, altimètre) affiché immédiatement, sans attendre les données
 - Visites suivantes instantanées : affichage depuis la mémoire du téléphone, mise à jour en arrière-plan
