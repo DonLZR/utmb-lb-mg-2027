@@ -1,4 +1,4 @@
-/* UTMB —moteur du site V1.6.0 (le contenu se gère dans le Google Sheet) */
+/* UTMB —moteur du site V1.7.0 (le contenu se gère dans le Google Sheet) */
 (() => {
   'use strict';
   const C = window.UTMB_CONFIG, I18N = window.UTMB_I18N, FLAGS = window.UTMB_FLAGS;
@@ -210,6 +210,12 @@
     }
 
     const bg = $('#heroBg'), imgs = photos('accueil');
+    /* Cadrage de la photo d'accueil (onglet Parametres) : 0 = gauche/haut, 50 = centre, 100 = droite/bas */
+    const pc = (v, d) => { const n = num(v); return n === null ? d : Math.min(100, Math.max(0, n)); };
+    const px = pc(p.accueil_position_h, 50), py = pc(p.accueil_position_v, 50);
+    const zm = Math.min(3, Math.max(1, num(p.accueil_zoom) ?? 1));
+    bg.style.setProperty('--px', px + '%'); bg.style.setProperty('--py', py + '%'); bg.style.setProperty('--z', zm);
+    bg.style.setProperty('--pxm', pc(p.accueil_position_h_mobile, px) + '%'); bg.style.setProperty('--pym', pc(p.accueil_position_v_mobile, py) + '%');
     clearInterval(slideTimer);
     bg.classList.toggle('empty', !imgs.length);
     /* Photo plein écran (comme avant la V1.5) */
@@ -269,9 +275,10 @@
   /* ---------- Navigation (pastilles sur mobile) ---------- */
   function renderNav() {
     $('#navLinks').innerHTML = DATA.etapes.map((e, i) => {
-      const open = isOpen(e);
-      return `<a href="#${esc(e.id)}" class="${open ? '' : 'locked'}" title="${esc(e.titre)}" aria-label="${i + 1}. ${esc(e.titre)}">` +
-        `<span class="nl-num" aria-hidden="true">${open ? i + 1 : '🔒'}</span><span class="nl-txt">${open ? '' : '🔒 '}${esc(e.titre)}</span></a>`;
+      const open = isOpen(e), nv = statut(e) === 'nouveau';
+      return `<a href="#${esc(e.id)}" class="${open ? '' : 'locked'}${nv ? ' nouveau' : ''}" title="${esc(e.titre)}" aria-label="${i + 1}. ${esc(e.titre)}${nv ? ' — ' + esc(t('nouveau')) : ''}">` +
+        `<span class="nl-num" aria-hidden="true">${open ? i + 1 : '🔒'}</span><span class="nl-txt">${open ? '' : '🔒 '}${esc(e.titre)}</span>` +
+        `${nv ? `<span class="badge nl-badge" aria-hidden="true">${esc(t('nouveau'))}</span>` : ''}</a>`;
     }).join('') +
       (hasGalerie() ? `<a href="#galerie" class="nl-gal" title="${esc(t('galerie'))}" aria-label="${esc(t('galerie'))}"><span class="nl-num" aria-hidden="true">📷</span><span class="nl-txt">${esc(t('galerie'))}</span></a>` : '');
   }
@@ -307,8 +314,8 @@
     $('#cpPanel').innerHTML = DATA.etapes.map((e, i) => {
       const st = statut(e);
       return `<button type="button" class="cp ${st === 'verrouille' ? 'locked' : ''}" data-id="${esc(e.id)}">
-        <span class="cp-num">${st === 'verrouille' ? '🔒' : i + 1}</span>
-        <span><span class="cp-title">${esc(e.titre)} ${st === 'nouveau' ? `<span class="badge">${esc(t('nouveau'))}</span>` : ''}</span>
+        <span class="num-wrap"><span class="cp-num">${st === 'verrouille' ? '🔒' : i + 1}</span>${st === 'nouveau' ? `<span class="badge badge-num" aria-hidden="true">${esc(t('nouveau'))}</span>` : ''}</span>
+        <span><span class="cp-title">${esc(e.titre)} ${st === 'nouveau' ? `<span class="badge badge-inline">${esc(t('nouveau'))}</span>` : ''}</span>
         <span class="cp-meta">${esc(e.cp || '')} · ${esc(e.lieu || '')}${e.km !== '' && e.km != null ? ' · km ' + esc(e.km) : ''}</span></span>
       </button>`;
     }).join('');
@@ -421,7 +428,7 @@
       .sort((a, b) => (isOpen(a.e) - isOpen(b.e)) || (b.i - a.i)); // verrouillées dessous, étape 1 au-dessus
     const mk = order.map(({ e, i }) => {
       const st = statut(e), locked = st === 'verrouille';
-        const dx = stacked.has(e.id) ? -32 * u : 0, dy = stacked.has(e.id) ? -10 * u : 0;   // superposé : à gauche
+        const dx = stacked.has(e.id) ? -17 * u : 0, dy = stacked.has(e.id) ? -5 * u : 0;   // superposé : à gauche
       const x = X(e.lng) + dx, y = Y(e.lat) + dy, r = (locked ? 13 : 16) * u;
       return `<g class="m2-mk ${locked ? 'locked' : st}" data-id="${esc(e.id)}" tabindex="0" role="button" aria-label="${esc(e.titre)}">
         <circle cx="${x}" cy="${y}" r="${r}"/><text x="${x}" y="${y}" font-size="${fs(locked ? 11 : 14)}">${locked ? '🔒' : i + 1}</text>
@@ -514,7 +521,7 @@
           el.appendChild(pin);
           el.addEventListener('click', ev => { ev.stopPropagation(); selectStage(e.id, true); });
           const opts = { element: el };
-            if (stacked.has(e.id)) opts.offset = [-36, -12]; // marqueur superposé : toujours à gauche (décalage écran, quelle que soit l'orientation)
+            if (stacked.has(e.id)) opts.offset = [-20, -6]; // marqueur superposé : toujours à gauche (décalage écran, quelle que soit l'orientation)
           markers[e.id] = new maplibregl.Marker(opts).setLngLat([e.lng, e.lat]).addTo(map);
         });
     });
@@ -668,11 +675,11 @@
       }
       return `<section class="stage ${locked ? 'locked' : ''}" id="${esc(e.id)}">
         <div class="stage-head">
-          <div class="stage-num">${locked ? '🔒' : i + 1}</div>
+          <div class="num-wrap"><div class="stage-num">${locked ? '🔒' : i + 1}</div>${st === 'nouveau' ? `<span class="badge badge-num" aria-hidden="true">${esc(t('nouveau'))}</span>` : ''}</div>
           <div><div class="stage-cp">${esc(e.cp || '')}${e.lieu ? ' · ' + esc(e.lieu) : ''}${e.km !== '' && e.km != null ? ' · km ' + esc(e.km) : ''}${e.altitude ? ' · ' + esc(e.altitude) + ' m' : ''}</div>
           <h2>${esc(e.titre)}</h2>${e.sous_titre ? `<p class="stage-sub">${esc(e.sous_titre)}</p>` : ''}</div>
         </div>
-        ${st === 'nouveau' ? `<span class="badge stage-new">${esc(t('nouveau'))}</span>` : ''}
+        ${st === 'nouveau' ? `<span class="badge stage-new badge-inline">${esc(t('nouveau'))}</span>` : ''}
         <div class="stage-body">${body}</div>
       </section>`;
     }).join('');

@@ -1,5 +1,16 @@
 # UTMB – Journal des versions
 
+## V1.7.0 — Cadrage de l'accueil, pastilles « Nouveau », appli M&L
+- Photo d'accueil : cadrage réglable depuis le Sheet (Parametres : accueil_position_h, accueil_position_v, accueil_zoom,
+  + accueil_position_h_mobile / accueil_position_v_mobile pour un cadrage différent sur téléphone)
+- Carte 3D et 2D : départ et arrivée qui se chevauchent, arrivée légèrement à gauche, départ devant
+- Pastille « Nouveau » aussi dans le bandeau du haut (texte sur ordinateur, point rouge sur les pastilles téléphone)
+- Téléphone : la pastille « Nouveau » se pose en bas à droite de la pastille numérotée (étapes + panneau de la carte),
+  plus de chevauchement avec le texte ; ordinateur : réserve de place à droite du titre de l'étape
+- Nom de l'appli installée : « M&L »
+- Code.gs : nouvelles lignes Parametres (cadrage) + étape Hébergement « nouveau » par défaut
+  → coller + 💾 + 🏔️ UTMB › Mettre à jour la structure (pas de nouveau déploiement nécessaire)
+
 ## V1.6.0 — Accueil plein écran, visionneuse, carte
 - Accueil : photo de nouveau en plein écran (recadrée), avec le léger zoom lent d'origine
 - Bouton « Installer l'appli » déplacé dans le bandeau supérieur, à gauche des étapes (icône 📲 seule sur téléphone)

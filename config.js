@@ -4,7 +4,7 @@
    (onglet Parametres) priment sur les valeurs ci-dessous.
    ========================================================= */
 window.UTMB_CONFIG = {
-version: "1.6.0",
+version: "1.7.0",
 
   apiUrl: (window.UTMB_CLES && window.UTMB_CLES.apiUrl) || "",
   accessCodeHash: (window.UTMB_CLES && window.UTMB_CLES.accessCodeHash) || "",
@@ -55,7 +55,7 @@ version: "1.6.0",
         contenu:"Bienvenue sur la ligne de départ !\n\nOn se marie… en **Bretagne**, mais notre cœur bat au rythme des sentiers du Mont-Blanc. Ce site est votre carnet de course : chaque ravitaillement se débloquera au fil de nos annonces.", lien_libelle:"", lien_url:"" },
       { id:"etape-2", ordre:2, cp:"Ravito 1", lieu:"Les Contamines", km:31, altitude:1150, titre:"Présence", sous_titre:"Confirmez votre inscription", type:"presence", statut:"nouveau", indice:"", lat:45.8213, lng:6.7273,
         contenu:"Pas de dossard sans inscription ! Dites-nous si vous serez sur la ligne de départ.", lien_libelle:"", lien_url:"" },
-      { id:"etape-3", ordre:3, cp:"Refuge", lieu:"Courmayeur", km:81, altitude:1190, titre:"Hébergement", sous_titre:"Où poser le sac", type:"hebergement", statut:"ouvert", indice:"", lat:45.7917, lng:6.9722,
+      { id:"etape-3", ordre:3, cp:"Refuge", lieu:"Courmayeur", km:81, altitude:1190, titre:"Hébergement", sous_titre:"Où poser le sac", type:"hebergement", statut:"nouveau", indice:"", lat:45.7917, lng:6.9722,
         contenu:"Voici quelques adresses pour récupérer après l'effort.", lien_libelle:"", lien_url:"" },
       { id:"etape-4", ordre:4, cp:"Ravito 2", lieu:"Champex-Lac", km:126, altitude:1470, titre:"Programme", sous_titre:"Le Jour J minute par minute", type:"programme", statut:"verrouille", indice:"Débloqué prochainement", lat:46.0300, lng:7.1170,
         contenu:"", lien_libelle:"", lien_url:"" },
