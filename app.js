@@ -1,10 +1,10 @@
-/* UTMB — moteur du site (ne pas modifier : le contenu se gère dans le Google Sheet) */
+/* UTMB — moteur du site V1.2.0 (le contenu se gère dans le Google Sheet) */
 (() => {
   'use strict';
   const C = window.UTMB_CONFIG, I18N = window.UTMB_I18N, FLAGS = window.UTMB_FLAGS;
   const $ = (s, r = document) => r.querySelector(s);
   const SEEN_KEY = 'utmb_seen', DOSSARD_KEY = 'utmb_dossard', GATE_KEY = 'utmb_ok', LANG_KEY = 'utmb_lang', SCROLL_KEY = 'utmb_scroll';
-  let DATA = null, map = null, markers = {}, touring = false, tourRaf = null;
+  let DATA = null, map = null, VIEW = null, markers = {}, touring = false, tourRaf = null;
 
   /* ---------- Langue ---------- */
   const LANGS = (C.langues || ['fr']).filter(l => I18N[l]);
@@ -18,6 +18,15 @@
   const t = (k, v = {}) => String((I18N[LANG] && I18N[LANG][k]) ?? I18N.fr[k] ?? k).replace(/\{(\w+)\}/g, (_, x) => v[x] ?? '');
   const CACHE_KEY = 'utmb_data_v1_' + LANG;
 
+  function switchLang(l) {
+    if (!LANGS.includes(l) || l === LANG) return;
+    localStorage.setItem(LANG_KEY, l);
+    sessionStorage.setItem(SCROLL_KEY, String(scrollY));
+    const u = new URL(location.href);
+    u.searchParams.delete('lang');
+    history.replaceState(null, '', u.toString());
+    location.reload(); // rechargement forcé, même si l'URL contient un #ancre
+  }
   function applyStaticI18n() {
     document.documentElement.lang = LANG;
     document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = t(el.dataset.i18n); });
@@ -25,11 +34,8 @@
     document.querySelectorAll('[data-lang-switch]').forEach(box => {
       box.innerHTML = LANGS.map(l => `<button type="button" data-lang="${l}" aria-pressed="${l === LANG}" title="${I18N[l]._nom}" aria-label="${I18N[l]._nom}">${FLAGS[l] || l.toUpperCase()}</button>`).join('');
       box.addEventListener('click', ev => {
-        const b = ev.target.closest('button[data-lang]'); if (!b || b.dataset.lang === LANG) return;
-        localStorage.setItem(LANG_KEY, b.dataset.lang);
-        sessionStorage.setItem(SCROLL_KEY, String(scrollY));
-        const u = new URL(location.href); u.searchParams.delete('lang');
-        location.replace(u.toString());
+        const b = ev.target.closest('button[data-lang]'); if (!b) return;
+        ev.preventDefault(); switchLang(b.dataset.lang);
       });
     });
   }
@@ -41,6 +47,7 @@
       .replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>')
       .replace(/\n/g, '<br>') + '</p>').join('');
   const norm = s => String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+  const num = v => { const n = parseFloat(String(v ?? '').replace(',', '.')); return isNaN(n) ? null : n; };
   const statut = e => { const s = norm(e.statut); return s.startsWith('nouv') ? 'nouveau' : s.startsWith('ouv') ? 'ouvert' : 'verrouille'; };
   const isOpen = e => statut(e) !== 'verrouille';
   const photos = key => (DATA.photos && DATA.photos[key]) || [];
@@ -85,11 +92,24 @@
   function prepare(d) {
     d.parametres = d.parametres || {};
     d.etapes = (d.etapes || []).filter(e => e.titre)
-      .map((e, i) => ({ ...e, ordre: Number(e.ordre) || i + 1, lat: parseFloat(e.lat), lng: parseFloat(e.lng) }))
+      .map((e, i) => ({ ...e, ordre: Number(e.ordre) || i + 1, lat: num(e.lat) ?? NaN, lng: num(e.lng) ?? NaN }))
       .sort((a, b) => a.ordre - b.ordre);
     d.etapes.forEach((e, i) => { if (!e.id) e.id = 'etape-' + (i + 1); });
     d.hebergements = d.hebergements || []; d.programme = d.programme || []; d.photos = d.photos || {};
     return d;
+  }
+
+  /* Vue de carte : valeurs config.js, remplacées par les lignes carte_… du Sheet si renseignées */
+  function computeView() {
+    const p = DATA.parametres, v = { ...C.map };
+    const b = num(p.carte_orientation), z = num(p.carte_zoom), pi = num(p.carte_inclinaison), r = num(p.carte_relief);
+    if (b !== null) v.bearing = b;
+    if (z !== null) v.zoom = Math.min(16, Math.max(6, z));
+    if (pi !== null) v.pitch = Math.min(80, Math.max(0, pi));
+    if (r !== null) v.exaggeration = Math.min(3, Math.max(0.5, r));
+    const c = String(p.carte_centre || '').split(/[;\s]+|,\s+/).map(num).filter(x => x !== null);
+    if (c.length === 2) v.center = [c[1], c[0]]; // saisi « latitude, longitude »
+    return v;
   }
 
   /* ---------- Accueil ---------- */
@@ -180,7 +200,7 @@
     document.querySelectorAll('.cp').forEach(b => b.classList.toggle('active', b.dataset.id === id));
     if (fly && map && !isNaN(e.lat)) {
       stopTour();
-      map.flyTo({ center: [e.lng, e.lat], zoom: 12.6, pitch: 66, bearing: map.getBearing() + 25, duration: 2800, essential: true });
+      map.flyTo({ center: [e.lng, e.lat], zoom: 12.6, pitch: 66, bearing: VIEW.bearing + 20, duration: 2800, essential: true });
     }
     if (!isOpen(e)) toast(`🔒 ${e.titre} — ${e.indice || t('bientot')}`);
     else toast(`📍 ${e.cp || ''} ${e.lieu || ''} — ${e.titre} · ${t('toast_tap')}`, 3000);
@@ -192,10 +212,11 @@
   /* ---------- Carte 3D ---------- */
   function initMap() {
     if (!window.maplibregl) return fallbackMap();
+    VIEW = computeView();
     try {
       map = new maplibregl.Map({
         container: 'map',
-        center: C.map.center, zoom: C.map.zoom, pitch: C.map.pitch, bearing: C.map.bearing,
+        center: VIEW.center, zoom: VIEW.zoom, pitch: VIEW.pitch, bearing: VIEW.bearing,
         maxPitch: 80, attributionControl: { compact: true }, cooperativeGestures: matchMedia('(pointer:coarse)').matches,
         style: {
           version: 8,
@@ -214,7 +235,7 @@
             { id: 'sat', type: 'raster', source: 'sat', paint: { 'raster-saturation': -0.15, 'raster-contrast': 0.08 } },
             { id: 'hillshade', type: 'hillshade', source: 'hs', paint: { 'hillshade-exaggeration': 0.35, 'hillshade-shadow-color': '#1c2b22' } }
           ],
-          terrain: { source: 'dem', exaggeration: C.map.exaggeration }
+          terrain: { source: 'dem', exaggeration: VIEW.exaggeration }
         }
       });
     } catch (e) { return fallbackMap(); }
@@ -222,6 +243,8 @@
     map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'bottom-left');
 
     map.on('load', () => {
+      map.jumpTo({ center: VIEW.center, zoom: VIEW.zoom, pitch: VIEW.pitch, bearing: VIEW.bearing }); // vue initiale imposée
+
       const route = C.route;
       const open = DATA.etapes.filter(isOpen), last = open[open.length - 1];
       let cut = 0;
@@ -425,9 +448,9 @@
     DATA = prepare(await loadData());
     renderHero(); renderNav(); renderProgress(); renderPanel(); renderSections(); renderGalerie(); initLightbox(); initMap();
     $('#btnTour').addEventListener('click', () => touring ? stopTour() : startTour());
-    $('#btnReset').addEventListener('click', () => { stopTour(); map && map.flyTo({ center: C.map.center, zoom: C.map.zoom, pitch: C.map.pitch, bearing: C.map.bearing, duration: 2200 }); });
+    $('#btnReset').addEventListener('click', () => { stopTour(); map && VIEW && map.flyTo({ center: VIEW.center, zoom: VIEW.zoom, pitch: VIEW.pitch, bearing: VIEW.bearing, duration: 2200 }); });
     const y = sessionStorage.getItem(SCROLL_KEY);
-    if (y !== null) { sessionStorage.removeItem(SCROLL_KEY); requestAnimationFrame(() => scrollTo({ top: +y, behavior: 'instant' })); }
+    if (y !== null) { sessionStorage.removeItem(SCROLL_KEY); setTimeout(() => scrollTo({ top: +y, behavior: 'instant' }), 50); }
   }
   start();
 })();

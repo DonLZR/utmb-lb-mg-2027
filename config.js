@@ -1,28 +1,24 @@
 /* =========================================================
-   UTMB – Ultra Trail du Mariage Bossi
-   config.js — LE SEUL FICHIER DE CODE À PERSONNALISER
+   UTMB – Ultra Trail du Mariage Bossi — config.js
+   Tes clés sont dans cles.js (jamais livré). Les réglages de carte
+   du Sheet (onglet Parametres, lignes carte_…) priment sur ceux-ci.
    ========================================================= */
 window.UTMB_CONFIG = {
-  version: "1.1.0",
+  version: "1.2.0",
 
-  /* 1) URL de l'Apps Script (se termine par /exec). Vide = mode démo.
-        ⚠️ À RECOPIER depuis ton ancien config.js à chaque livraison. */
-  apiUrl: "https://script.google.com/macros/s/AKfycbwGfRQS1Z0V8N9U2MNVOYCounZabAHdStlwHU3E1gZhJCMzvDcazPj9n1vyeIfSO3xK/exec",
+  apiUrl: (window.UTMB_CLES && window.UTMB_CLES.apiUrl) || "",
+  accessCodeHash: (window.UTMB_CLES && window.UTMB_CLES.accessCodeHash) || "",
 
-  /* 2) Code d'accès (optionnel). Empreinte générée avec outils/hash.html.
-        ⚠️ À RECOPIER depuis ton ancien config.js à chaque livraison. */
-  accessCodeHash: "0855cf25c4ecc9b73aa1183949e67b76ffda26352d656764c5207778d5930c74",
-
-  /* 3) Langues proposées (la 1re = langue par défaut) */
+  /* Langues proposées (la 1re = langue par défaut) */
   langues: ["fr", "it", "es"],
 
-  /* 4) Carte 3D — vue initiale côté Chamonix (regard vers le sud / l'Italie) */
+  /* Carte 3D — valeurs par défaut (vue depuis Chamonix vers le Mont Blanc / l'Italie) */
   map: {
     center: [6.92, 45.86],   // [longitude, latitude]
     zoom: 10.1,
     pitch: 62,
-    bearing: 162,            // 0 = nord en haut ; 162 ≈ vue depuis Chamonix vers le Mont Blanc
-    exaggeration: 1.5        // relief : 1 = réel, 2 = très marqué
+    bearing: 162,            // 0 = nord en haut ; 162 ≈ caméra côté Chamonix, regard vers le sud
+    exaggeration: 1.5
   },
 
   /* Tracé du parcours (boucle UTMB simplifiée) [longitude, latitude] */
@@ -35,7 +31,7 @@ window.UTMB_CONFIG = {
     [6.9330,46.0330],[6.9240,45.9980],[6.8900,45.9600],[6.8760,45.9300]
   ],
 
-  /* Données de démonstration : utilisées tant que apiUrl est vide (français uniquement). */
+  /* Données de démonstration (utilisées tant que apiUrl est vide) */
   demo: {
     parametres: {
       titre: "U.T.M.B.",
