@@ -4,7 +4,7 @@
    (onglet Parametres) priment sur les valeurs ci-dessous.
    ========================================================= */
 window.UTMB_CONFIG = {
-version: "1.7.0",
+version: "1.8.0",
 
   apiUrl: (window.UTMB_CLES && window.UTMB_CLES.apiUrl) || "",
   accessCodeHash: (window.UTMB_CLES && window.UTMB_CLES.accessCodeHash) || "",
@@ -23,8 +23,8 @@ version: "1.7.0",
   /* Carte 3D — valeurs par défaut (vue depuis Chamonix vers le Mont Blanc / l'Italie) */
   map: {
     center: [6.92, 45.86],   // [longitude, latitude]
-    zoom: 10.1,
-    pitch: 62,
+      zoom: 9.4,             // plus petit = plus haut / plus large
+      pitch: 55,
     bearing: 162,
     exaggeration: 1.5
   },

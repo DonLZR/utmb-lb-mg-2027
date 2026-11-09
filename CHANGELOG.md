@@ -1,5 +1,15 @@
 # UTMB – Journal des versions
 
+## V1.8.0 — Bandeaux iOS, carte plus haute, pastilles « Nouveau »
+- Bandeaux photos : défilement piloté en JavaScript (les animations CSS se figeaient sur iPhone/iPad) ;
+  pause au survol ou au toucher, arrêt automatique hors écran
+- Téléphone : pastille « Nouveau » en bas à droite de l'en-tête d'étape et des cartes du panneau, dans une zone sans texte
+- Carte 3D : vue d'ouverture plus haute et plus large (zoom 9.4, inclinaison 55) ; téléphone automatiquement encore plus large
+  (nouvelle ligne Parametres « carte_zoom_mobile » pour un réglage précis)
+- Départ / arrivée : chevauchement plus serré (3D et 2D)
+- Code.gs : migration automatique de carte_zoom 10.1 → 9.4 et carte_inclinaison 62 → 55 (si valeurs d'origine) + ligne carte_zoom_mobile
+  → coller + 💾 + 🏔️ UTMB › Mettre à jour la structure
+
 ## V1.7.0 — Cadrage de l'accueil, pastilles « Nouveau », appli M&L
 - Photo d'accueil : cadrage réglable depuis le Sheet (Parametres : accueil_position_h, accueil_position_v, accueil_zoom,
   + accueil_position_h_mobile / accueil_position_v_mobile pour un cadrage différent sur téléphone)

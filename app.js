@@ -1,4 +1,4 @@
-/* UTMB —moteur du site V1.7.0 (le contenu se gère dans le Google Sheet) */
+/* UTMB — moteur du site V1.8.0 (le contenu se gère dans le Google Sheet) */
 (() => {
   'use strict';
   const C = window.UTMB_CONFIG, I18N = window.UTMB_I18N, FLAGS = window.UTMB_FLAGS;
@@ -133,6 +133,10 @@
     const b = num(p.carte_orientation), z = num(p.carte_zoom), pi = num(p.carte_inclinaison), r = num(p.carte_relief);
     if (b !== null) v.bearing = b;
     if (z !== null) v.zoom = Math.min(16, Math.max(6, z));
+    if (!matchMedia('(min-width:821px)').matches) {          // téléphone : écran étroit → on prend plus de hauteur
+      const zm = num(p.carte_zoom_mobile);
+      v.zoom = zm !== null ? Math.min(16, Math.max(6, zm)) : v.zoom - 0.6;
+    }
     if (pi !== null) v.pitch = Math.min(80, Math.max(0, pi));
     if (r !== null) v.exaggeration = Math.min(3, Math.max(0.5, r));
     const c = String(p.carte_centre || '').split(/[;\s]+|,\s+/).map(num).filter(x => x !== null);
@@ -230,7 +234,6 @@
     const strip = photos('bandeau');
     $('#strip').hidden = !strip.length;
     $('#stripTrack').innerHTML = stripTrack(strip);
-    $('#stripTrack').style.animationDuration = stripDuree(strip) + 's';
 
     const d = JSON.parse(localStorage.getItem(DOSSARD_KEY) || 'null');
     if (d) showDossard(d);
@@ -238,11 +241,47 @@
   /* Bandeau défilant : photos répétées pour toujours remplir la largeur, boucle sans à-coup */
   function stripBase(list) { let b = list.slice(); while (b.length && b.length < 8) b = b.concat(list); return b; }
   function stripTrack(list) { const h = stripBase(list).map(u => imgTag(u)).join(''); return h + h; }
-  function stripDuree(list) { return Math.max(30, stripBase(list).length * 6); }
   function stripHtml(list) {
     if (!list.length) return '';
-    return `<div class="strip strip-in"><div class="strip-track" style="animation-duration:${stripDuree(list)}s">${stripTrack(list)}</div></div>`;
+    return `<div class="strip strip-in"><div class="strip-track">${stripTrack(list)}</div></div>`;
   }
+  /* Défilement des bandeaux en JavaScript : iOS/Safari fige les animations CSS en % quand les photos
+     se chargent après le démarrage. Ici la largeur est mesurée en continu → défilement fiable partout. */
+  const STRIP_VITESSE = 32;                                   // pixels par seconde
+  const strips = new Map();
+  let stripRaf = null, stripLast = 0;
+  function initStrips() {
+    document.querySelectorAll('.strip-track').forEach(tr => {
+      if (strips.has(tr)) return;
+      const st = { x: 0, pause: false, half: 0, visible: true };
+      const mesure = () => { st.half = tr.scrollWidth / 2; };
+      tr.querySelectorAll('img').forEach(im => { if (!im.complete) im.addEventListener('load', mesure, { once: true }); });
+      mesure();
+      const box = tr.parentElement;
+      box.addEventListener('mouseenter', () => { st.pause = true; });
+      box.addEventListener('mouseleave', () => { st.pause = false; });
+      box.addEventListener('touchstart', () => { st.pause = true; }, { passive: true });
+      box.addEventListener('touchend', () => { setTimeout(() => { st.pause = false; }, 1200); }, { passive: true });
+      if ('IntersectionObserver' in window) new IntersectionObserver(en => { st.visible = en[0].isIntersecting; }).observe(box);
+      strips.set(tr, st);
+    });
+    strips.forEach((st, tr) => { if (!tr.isConnected) strips.delete(tr); });
+    if (!stripRaf && strips.size) { stripLast = performance.now(); stripRaf = requestAnimationFrame(stripTick); }
+  }
+  function stripTick(now) {
+    const dt = Math.min(0.1, (now - stripLast) / 1000); stripLast = now;
+    strips.forEach((st, tr) => {
+      if (!tr.isConnected) { strips.delete(tr); return; }
+      if (st.pause || !st.visible || document.hidden) return;
+      if (!st.half) st.half = tr.scrollWidth / 2;
+      if (st.half < 10) return;
+      st.x -= STRIP_VITESSE * dt;
+      if (-st.x >= st.half) st.x += st.half;
+      tr.style.transform = `translate3d(${st.x.toFixed(2)}px,0,0)`;
+    });
+    stripRaf = strips.size ? requestAnimationFrame(stripTick) : null;
+  }
+  addEventListener('resize', () => strips.forEach((st, tr) => { st.half = tr.scrollWidth / 2; }));
 
   function showDossard(d) {
     $('#dossard').hidden = false;
@@ -313,8 +352,8 @@
   function renderPanel() {
     $('#cpPanel').innerHTML = DATA.etapes.map((e, i) => {
       const st = statut(e);
-      return `<button type="button" class="cp ${st === 'verrouille' ? 'locked' : ''}" data-id="${esc(e.id)}">
-        <span class="num-wrap"><span class="cp-num">${st === 'verrouille' ? '🔒' : i + 1}</span>${st === 'nouveau' ? `<span class="badge badge-num" aria-hidden="true">${esc(t('nouveau'))}</span>` : ''}</span>
+      return `<button type="button" class="cp ${st === 'verrouille' ? 'locked' : ''}${st === 'nouveau' ? ' is-new' : ''}" data-id="${esc(e.id)}">
+        <span class="cp-num">${st === 'verrouille' ? '🔒' : i + 1}</span>${st === 'nouveau' ? `<span class="badge badge-coin" aria-hidden="true">${esc(t('nouveau'))}</span>` : ''}
         <span><span class="cp-title">${esc(e.titre)} ${st === 'nouveau' ? `<span class="badge badge-inline">${esc(t('nouveau'))}</span>` : ''}</span>
         <span class="cp-meta">${esc(e.cp || '')} · ${esc(e.lieu || '')}${e.km !== '' && e.km != null ? ' · km ' + esc(e.km) : ''}</span></span>
       </button>`;
@@ -428,7 +467,7 @@
       .sort((a, b) => (isOpen(a.e) - isOpen(b.e)) || (b.i - a.i)); // verrouillées dessous, étape 1 au-dessus
     const mk = order.map(({ e, i }) => {
       const st = statut(e), locked = st === 'verrouille';
-        const dx = stacked.has(e.id) ? -17 * u : 0, dy = stacked.has(e.id) ? -5 * u : 0;   // superposé : à gauche
+const dx = stacked.has(e.id) ? -10 * u : 0, dy = stacked.has(e.id) ? -3 * u : 0;   // superposé : à gauche
       const x = X(e.lng) + dx, y = Y(e.lat) + dy, r = (locked ? 13 : 16) * u;
       return `<g class="m2-mk ${locked ? 'locked' : st}" data-id="${esc(e.id)}" tabindex="0" role="button" aria-label="${esc(e.titre)}">
         <circle cx="${x}" cy="${y}" r="${r}"/><text x="${x}" y="${y}" font-size="${fs(locked ? 11 : 14)}">${locked ? '🔒' : i + 1}</text>
@@ -521,7 +560,7 @@
           el.appendChild(pin);
           el.addEventListener('click', ev => { ev.stopPropagation(); selectStage(e.id, true); });
           const opts = { element: el };
-            if (stacked.has(e.id)) opts.offset = [-20, -6]; // marqueur superposé : toujours à gauche (décalage écran, quelle que soit l'orientation)
+if (stacked.has(e.id)) opts.offset = [-12, -3]; // marqueur superposé : toujours à gauche (décalage écran, quelle que soit l'orientation)
           markers[e.id] = new maplibregl.Marker(opts).setLngLat([e.lng, e.lat]).addTo(map);
         });
     });
@@ -673,11 +712,12 @@
         if (ty === 'programme') body += programmeHtml();
         body += photosHtml(e.id) + linkHtml(e);
       }
-      return `<section class="stage ${locked ? 'locked' : ''}" id="${esc(e.id)}">
+      return `<section class="stage ${locked ? 'locked' : ''}${st === 'nouveau' ? ' is-new' : ''}" id="${esc(e.id)}">
         <div class="stage-head">
-          <div class="num-wrap"><div class="stage-num">${locked ? '🔒' : i + 1}</div>${st === 'nouveau' ? `<span class="badge badge-num" aria-hidden="true">${esc(t('nouveau'))}</span>` : ''}</div>
+          <div class="stage-num">${locked ? '🔒' : i + 1}</div>
           <div><div class="stage-cp">${esc(e.cp || '')}${e.lieu ? ' · ' + esc(e.lieu) : ''}${e.km !== '' && e.km != null ? ' · km ' + esc(e.km) : ''}${e.altitude ? ' · ' + esc(e.altitude) + ' m' : ''}</div>
-          <h2>${esc(e.titre)}</h2>${e.sous_titre ? `<p class="stage-sub">${esc(e.sous_titre)}</p>` : ''}</div>
+            <h2>${esc(e.titre)}</h2>${e.sous_titre ? `<p class="stage-sub">${esc(e.sous_titre)}</p>` : ''}</div>
+          ${st === 'nouveau' ? `<span class="badge badge-coin" aria-hidden="true">${esc(t('nouveau'))}</span>` : ''}
         </div>
         ${st === 'nouveau' ? `<span class="badge stage-new badge-inline">${esc(t('nouveau'))}</span>` : ''}
         <div class="stage-body">${body}</div>
@@ -802,7 +842,7 @@
     if (sig === DATA_SIG) return false;
     if (maj && formulaireEnCours()) return false;    // l'invité remplit un formulaire : on ne touche à rien
     DATA_SIG = sig; DATA = prepare(JSON.parse(sig));
-    renderHero(); renderNav(); renderProgress(); renderPanel(); renderSections(); renderGalerie(); initScrollSpy();
+    renderHero(); renderNav(); renderProgress(); renderPanel(); renderSections(); renderGalerie(); initScrollSpy(); initStrips();
     delete $('#map2d').dataset.ok;
     if (MODE === '2d') render2D();
     if (map) { map.remove(); map = null; markers = {}; }
