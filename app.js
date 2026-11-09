@@ -1,11 +1,12 @@
-/* UTMB — moteur du site V1.4.0 (le contenu se gère dans le Google Sheet) */
+/* UTMB — moteur du site V1.4.1 (le contenu se gère dans le Google Sheet) */
 (() => {
   'use strict';
   const C = window.UTMB_CONFIG, I18N = window.UTMB_I18N, FLAGS = window.UTMB_FLAGS;
   const $ = (s, r = document) => r.querySelector(s);
   const SEEN_KEY = 'utmb_seen', DOSSARD_KEY = 'utmb_dossard', GATE_KEY = 'utmb_ok', LANG_KEY = 'utmb_lang',
         SCROLL_KEY = 'utmb_scroll', MODE_KEY = 'utmb_mode';
-  let DATA = null, map = null, VIEW = null, markers = {}, touring = false, tourRaf = null, MODE = '3d', deferredInstall = null;
+  let DATA = null, DATA_SIG = '', map = null, VIEW = null, markers = {}, touring = false, tourRaf = null, MODE = '3d', deferredInstall = null;
+  let chronoTarget = null, chronoTimer = null, slideTimer = null, pendingFly = null, mapWanted = false, mapLibPromise = null;
 
   /* ---------- Langue ---------- */
   const LANGS = (C.langues || ['fr']).filter(l => I18N[l]);
@@ -53,7 +54,10 @@
   const isOpen = e => statut(e) !== 'verrouille';
   const photos = key => (DATA.photos && DATA.photos[key]) || [];
   const toast = (msg, ms = 4000) => { const el = $('#toast'); el.textContent = msg; el.classList.add('show'); clearTimeout(el._h); el._h = setTimeout(() => el.classList.remove('show'), ms); };
-  const imgTag = (src, alt = '') => `<img src="${esc(src)}" alt="${esc(alt)}" loading="lazy" data-zoom>`;
+  /* Miniatures Drive : on demande une taille adaptée à l'écran (beaucoup plus léger sur téléphone) */
+  const sized = (u, w) => String(u).replace(/sz=w\d+/, 'sz=w' + Math.round(w));
+  const ecranW = () => Math.min(2000, Math.round((window.innerWidth || 1000) * Math.min(2, window.devicePixelRatio || 1)));
+  const imgTag = (src, alt = '') => `<img src="${esc(sized(src, 700))}" alt="${esc(alt)}" loading="lazy" decoding="async" data-zoom data-full="${esc(src)}">`;
   const fmtNum = n => Number(n).toLocaleString(t('_locale'));
 
   /* Dates : « 2027-07-24 », « 2027-07-24T15:00 », « 24/07/2027 », « 24/07/2027 15:00 » → heure locale */
@@ -96,19 +100,23 @@
     });
   }
 
-  /* ---------- Données ---------- */
-  async function loadData() {
+  /* ---------- Données : affichage immédiat depuis le cache, puis mise à jour ---------- */
+  function readCache() {
     if (!C.apiUrl) return C.demo;
+    try { const c = localStorage.getItem(CACHE_KEY); return c ? JSON.parse(c) : null; } catch (e) { return null; }
+  }
+  async function fetchData() {
+    if (!C.apiUrl) return null;
+    const ctrl = 'AbortController' in window ? new AbortController() : null;
+    const to = ctrl && setTimeout(() => ctrl.abort(), 20000);
     try {
-      const r = await fetch(C.apiUrl + (C.apiUrl.includes('?') ? '&' : '?') + 'lang=' + LANG + '&t=' + Date.now());
-      const d = await r.json();
+      const r = await fetch(C.apiUrl + (C.apiUrl.includes('?') ? '&' : '?') + 'lang=' + LANG + '&t=' + Date.now(), ctrl ? { signal: ctrl.signal } : {});
+      const txt = await r.text();
+      const d = JSON.parse(txt);
       if (!d || !d.etapes) throw new Error('format');
-      localStorage.setItem(CACHE_KEY, JSON.stringify(d));
+      try { localStorage.setItem(CACHE_KEY, txt); } catch (e) {}
       return d;
-    } catch (e) {
-      const c = localStorage.getItem(CACHE_KEY);
-      return c ? JSON.parse(c) : C.demo;
-    }
+    } catch (e) { return null; } finally { if (to) clearTimeout(to); }
   }
   function prepare(d) {
     d.parametres = d.parametres || {};
@@ -160,6 +168,32 @@
     if (p >= 1) $('#altiMax').textContent = t('alti_top');
   }
 
+  /* Compte à rebours : un seul minuteur, même si l'accueil est redessiné */
+  function startChrono(target) {
+    if (chronoTarget && +chronoTarget === +target) return;
+    chronoTarget = target;
+    $('#heroDate').textContent = target.toLocaleDateString(t('_locale'), { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+    $('#chrono').hidden = false;
+    initAltimetre();
+    let last = -1;
+    const tick = () => {
+      let s = Math.max(0, Math.floor((chronoTarget - Date.now()) / 1000));
+      $('#cJ').textContent = Math.floor(s / 86400); s %= 86400;
+      $('#cH').textContent = String(Math.floor(s / 3600)).padStart(2, '0'); s %= 3600;
+      $('#cM').textContent = String(Math.floor(s / 60)).padStart(2, '0');
+      $('#cS').textContent = String(s % 60).padStart(2, '0');
+      const minute = Math.floor(Date.now() / 60000);
+      if (minute !== last) { last = minute; majAltimetre(chronoTarget); }
+    };
+    clearInterval(chronoTimer); tick(); chronoTimer = setInterval(tick, 1000);
+  }
+  /* Accueil minimal, affiché avant même l'arrivée des données */
+  function renderHeroInstant() {
+    $('#footerVersion').textContent = 'v' + C.version;
+    const target = parseDate(C.dateMariage);
+    if (target) startChrono(target);
+  }
+
   function renderHero() {
     const p = DATA.parametres;
     $('#heroTitre').textContent = p.titre || 'U.T.M.B.';
@@ -172,36 +206,23 @@
 
     const target = parseDate(p.date_mariage) || parseDate(C.dateMariage);
     if (target) {
-      $('#heroDate').textContent = target.toLocaleDateString(t('_locale'), { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
-      $('#chrono').hidden = false;
-      initAltimetre();
-      let last = -1;
-      const tick = () => {
-        let s = Math.max(0, Math.floor((target - Date.now()) / 1000));
-        $('#cJ').textContent = Math.floor(s / 86400); s %= 86400;
-        $('#cH').textContent = String(Math.floor(s / 3600)).padStart(2, '0'); s %= 3600;
-        $('#cM').textContent = String(Math.floor(s / 60)).padStart(2, '0');
-        $('#cS').textContent = String(s % 60).padStart(2, '0');
-        const minute = Math.floor(Date.now() / 60000);
-        if (minute !== last) { last = minute; majAltimetre(target); }
-      };
-      tick(); setInterval(tick, 1000);
+      startChrono(target);
     }
 
     const bg = $('#heroBg'), imgs = photos('accueil');
-    if (!imgs.length) bg.classList.add('empty');
-    else {
-      bg.innerHTML = imgs.map((u, i) => `<img src="${esc(u)}" alt="" ${i ? 'loading="lazy"' : ''}>`).join('');
-      const els = bg.querySelectorAll('img'); let k = 0; els[0].classList.add('on');
-      if (els.length > 1) setInterval(() => { els[k].classList.remove('on'); k = (k + 1) % els.length; els[k].classList.add('on'); }, 6000);
+    clearInterval(slideTimer);
+    bg.classList.toggle('empty', !imgs.length);
+    bg.innerHTML = imgs.map((u, i) => `<img src="${esc(sized(u, ecranW()))}" alt="" decoding="async"${i ? ' loading="lazy"' : ' fetchpriority="high"'}>`).join('');
+    const els = bg.querySelectorAll('img');
+    if (els.length) {
+      let k = 0; els[0].classList.add('on');
+      if (els.length > 1) slideTimer = setInterval(() => { els[k].classList.remove('on'); k = (k + 1) % els.length; els[k].classList.add('on'); }, 6000);
     }
 
     const strip = photos('bandeau');
-    if (strip.length) {
-      $('#strip').hidden = false;
-      const html = strip.map(u => imgTag(u)).join('');
-      $('#stripTrack').innerHTML = html + html;
-    }
+    $('#strip').hidden = !strip.length;
+    const html = strip.map(u => imgTag(u)).join('');
+    $('#stripTrack').innerHTML = html + html;
 
     const d = JSON.parse(localStorage.getItem(DOSSARD_KEY) || 'null');
     if (d) showDossard(d);
@@ -242,12 +263,11 @@
         `<span class="nl-num" aria-hidden="true">${open ? i + 1 : '🔒'}</span><span class="nl-txt">${open ? '' : '🔒 '}${esc(e.titre)}</span></a>`;
     }).join('') +
       (hasGalerie() ? `<a href="#galerie" class="nl-gal" title="${esc(t('galerie'))}" aria-label="${esc(t('galerie'))}"><span class="nl-num" aria-hidden="true">📷</span><span class="nl-txt">${esc(t('galerie'))}</span></a>` : '');
-    const nav = $('#nav');
-    const upd = () => nav.classList.toggle('scrolled', scrollY > 60);
-    addEventListener('scroll', upd, { passive: true }); upd();
   }
+  let spy = null;
   function initScrollSpy() {
     if (!('IntersectionObserver' in window)) return;
+    if (spy) spy.disconnect();
     const links = [...document.querySelectorAll('#navLinks a')];
     const io = new IntersectionObserver(entries => {
       entries.forEach(en => {
@@ -257,6 +277,7 @@
         if (a && box.scrollWidth > box.clientWidth) box.scrollTo({ left: a.offsetLeft - box.clientWidth / 2, behavior: 'smooth' });
       });
     }, { rootMargin: '-45% 0px -50% 0px' });
+    spy = io;
     document.querySelectorAll('.stage, #galerie').forEach(s => io.observe(s));
   }
 
@@ -280,11 +301,8 @@
         <span class="cp-meta">${esc(e.cp || '')} · ${esc(e.lieu || '')}${e.km !== '' && e.km != null ? ' · km ' + esc(e.km) : ''}</span></span>
       </button>`;
     }).join('');
-    $('#cpPanel').addEventListener('click', ev => {
-      const b = ev.target.closest('.cp'); if (b) selectStage(b.dataset.id, true);
-    });
   }
-  function selectStage(id, fly) {
+  function selectStage(id, fly, silent) {
     const e = DATA.etapes.find(x => x.id === id); if (!e) return;
     document.querySelectorAll('.cp').forEach(b => b.classList.toggle('active', b.dataset.id === id));
     document.querySelectorAll('.m2-mk').forEach(g => g.classList.toggle('active', g.dataset.id === id));
@@ -292,17 +310,35 @@
       stopTour();
       map.flyTo({ center: [e.lng, e.lat], zoom: 12.6, pitch: 66, bearing: VIEW.bearing + 20, duration: 2800, essential: true });
     }
+    if (silent) return;
     if (!isOpen(e)) toast(`🔒 ${e.titre} — ${e.indice || t('bientot')}`);
     else toast(`📍 ${e.cp || ''} ${e.lieu || ''} — ${e.titre} · ${t('toast_tap')}`, 3000);
     const btn = document.querySelector(`.cp[data-id="${CSS.escape(id)}"]`);
-    if (btn && btn.dataset.armed) { document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' }); delete btn.dataset.armed; }
+    if (btn && btn.dataset.armed) { goTo(id); delete btn.dataset.armed; }
     else if (btn) { document.querySelectorAll('.cp').forEach(b => delete b.dataset.armed); btn.dataset.armed = '1'; }
   }
 
   /* ---------- Mode carte 2D / 3D ---------- */
   const WEBGL = (() => { try { const c = document.createElement('canvas'); return !!(c.getContext('webgl2') || c.getContext('webgl')); } catch (e) { return false; } })();
   const LOW_END = (navigator.deviceMemory && navigator.deviceMemory <= 2) || (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 2);
-  const CAN_3D = WEBGL && !!window.maplibregl;
+  let CAN_3D = WEBGL;
+  const MAPLIBRE = 'https://unpkg.com/maplibre-gl@4.7.1/dist/';
+  function loadMaplibre() {
+    if (window.maplibregl) return Promise.resolve();
+    if (mapLibPromise) return mapLibPromise;
+    mapLibPromise = new Promise((ok, ko) => {
+      const css = document.createElement('link'); css.rel = 'stylesheet'; css.href = MAPLIBRE + 'maplibre-gl.css'; document.head.appendChild(css);
+      const s = document.createElement('script'); s.src = MAPLIBRE + 'maplibre-gl.js'; s.async = true;
+      s.onload = () => window.maplibregl ? ok() : ko(); s.onerror = ko; document.head.appendChild(s);
+    });
+    return mapLibPromise;
+  }
+  function ensure3D() {
+    if (MODE !== '3d' || map || !mapWanted || !DATA) return;
+    $('#map').classList.add('loading');
+    loadMaplibre().then(() => { $('#map').classList.remove('loading'); if (MODE === '3d' && !map) initMap(); })
+      .catch(() => { CAN_3D = false; $('#map').classList.remove('loading'); setMode('2d', true); });
+  }
 
   function setMode(m, info) {
     MODE = (m === '3d' && CAN_3D) ? '3d' : '2d';
@@ -311,15 +347,21 @@
     $('#btnTour').hidden = !is3d; $('#btnReset').hidden = !is3d;
     $('#btnMode').hidden = !CAN_3D;
     $('#btnMode').textContent = is3d ? t('mode2d') : t('mode3d');
-    if (is3d) { stopTour(); if (!map) initMap(); else map.resize(); }
-    else { stopTour(); render2D(); if (info) toast(t('info2d'), 3500); }
+    if (is3d) { stopTour(); if (!map) ensure3D(); else map.resize(); }
+    else { stopTour(); if (DATA) render2D(); if (info) toast(t('info2d'), 3500); }
   }
   function initModes() {
     const saved = localStorage.getItem(MODE_KEY);
     const start = !CAN_3D ? '2d' : (saved || (LOW_END ? '2d' : '3d'));
     setMode(start, !CAN_3D);
-    let rz;
-    addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => { if (MODE === '2d') { delete $('#map2d').dataset.ok; render2D(); } }, 250); });
+    let rz, lastW = innerWidth;
+    addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => {
+      if (MODE === '2d' && DATA && innerWidth !== lastW) { delete $('#map2d').dataset.ok; render2D(); } lastW = innerWidth; }, 250); });
+    /* La carte n'est préparée que lorsqu'on s'en approche (gain de plusieurs secondes au lancement) */
+    if ('IntersectionObserver' in window) {
+      const io = new IntersectionObserver(en => { if (en.some(x => x.isIntersecting)) { mapWanted = true; io.disconnect(); ensure3D(); } }, { rootMargin: '400px 0px' });
+      io.observe($('#parcours'));
+    } else { mapWanted = true; ensure3D(); }
     $('#btnMode').addEventListener('click', () => {
       const next = MODE === '3d' ? '2d' : '3d';
       localStorage.setItem(MODE_KEY, next); setMode(next);
@@ -417,6 +459,7 @@
 
     map.on('load', () => {
       map.jumpTo({ center: VIEW.center, zoom: VIEW.zoom, pitch: VIEW.pitch, bearing: VIEW.bearing });
+      if (pendingFly) { const id = pendingFly; pendingFly = null; setTimeout(() => selectStage(id, true, true), 900); }
 
       const route = C.route;
       const open = DATA.etapes.filter(isOpen), last = open[open.length - 1];
@@ -462,8 +505,9 @@
     const fresh = DATA.etapes.filter(e => statut(e) === 'nouveau' && !seen.includes(e.id));
     if (fresh.length) {
       const e = fresh[fresh.length - 1];
-      const go = () => setTimeout(() => { toast(t('toast_new', { t: e.titre }), 5000); selectStage(e.id, true); }, 1500);
-      if (MODE === '3d' && map && !map.loaded()) map.once('load', go); else go();
+      setTimeout(() => toast(t('toast_new', { t: e.titre }), 5000), 1200);
+      selectStage(e.id, false, true);
+      if (MODE === '3d') { if (map && map.loaded()) selectStage(e.id, true, true); else pendingFly = e.id; }
     }
     localStorage.setItem(SEEN_KEY, JSON.stringify(DATA.etapes.filter(isOpen).map(e => e.id)));
   }
@@ -514,7 +558,7 @@
         const list = q.type === 'ouinon' && !opts.length ? [{ v: 'Oui', l: t('oui') }, { v: 'Non', l: t('non') }] : opts;
         const defs = def.split(';').map(norm);
         inner = `<fieldset class="choice-set"><legend>${esc(q.question)}${req}</legend>${q.aide ? `<p class="q-aide">${esc(q.aide)}</p>` : ''}<div class="choice">` +
-          list.map(o => `<label><input type="${multi ? 'checkbox' : 'radio'}" name="${nm}" value="${esc(o.v)}"${defs.includes(norm(o.v)) && def ? ' checked' : ''}> ${esc(o.l)}</label>`).join('') +
+          list.map(o => `<label><input type="${multi ? 'checkbox' : 'radio'}" name="${nm}" value="${esc(o.v)}"${defs.includes(norm(o.v)) && def ? ' checked' : ''}><span class="opt">${esc(o.l)}</span></label>`).join('') +
           '</div></fieldset>';
         break;
       }
@@ -673,7 +717,7 @@
   function initLightbox() {
     document.addEventListener('click', e => {
       const img = e.target.closest('img[data-zoom]'); if (!img) return;
-      $('#lbImg').src = img.src.replace(/sz=w\d+/, 'sz=w2400'); $('#lightbox').hidden = false;
+      $('#lbImg').src = sized(img.dataset.full || img.src, 2400); $('#lightbox').hidden = false;
     });
     const closeLb = () => { $('#lightbox').hidden = true; $('#lbImg').src = ''; };
     $('#lbClose').addEventListener('click', closeLb);
@@ -681,18 +725,64 @@
     addEventListener('keydown', e => { if (e.key === 'Escape') { closeLb(); $('#iosModal').hidden = true; } });
   }
 
+  /* ---------- Navigation interne sans « #ancre » dans l'adresse ---------- */
+  function goTo(id) {
+    if (id === 'top') return scrollTo({ top: 0, behavior: 'smooth' });
+    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
+  }
+  function initAnchors() {
+    document.addEventListener('click', ev => {
+      const a = ev.target.closest('a[href^="#"]'); if (!a) return;
+      const id = a.getAttribute('href').slice(1); if (!id) return;
+      ev.preventDefault(); goTo(id);
+    });
+  }
+
+  /* ---------- Rendu complet (rejouable sans doublon) ---------- */
+  const formulaireEnCours = () => [...document.querySelectorAll('form.form')].some(f =>
+    [...f.elements].some(el => (el.type === 'radio' || el.type === 'checkbox') ? el.checked !== el.defaultChecked
+      : (el.name && el.name !== 'website' && 'defaultValue' in el && el.value !== el.defaultValue)));
+  function renderAll(d, maj) {
+    const sig = JSON.stringify(d);
+    if (sig === DATA_SIG) return false;
+    if (maj && formulaireEnCours()) return false;    // l'invité remplit un formulaire : on ne touche à rien
+    DATA_SIG = sig; DATA = prepare(JSON.parse(sig));
+    renderHero(); renderNav(); renderProgress(); renderPanel(); renderSections(); renderGalerie(); initScrollSpy();
+    delete $('#map2d').dataset.ok;
+    if (MODE === '2d') render2D();
+    if (map) { map.remove(); map = null; markers = {}; }
+    ensure3D();
+    document.body.classList.remove('chargement');
+    return true;
+  }
+
   /* ---------- Démarrage ---------- */
   async function start() {
+    if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+    const y = sessionStorage.getItem(SCROLL_KEY);
+    if (y === null) {                                 // lancement normal : toujours sur l'accueil
+      if (location.hash) history.replaceState(null, '', location.pathname + location.search);
+      scrollTo(0, 0);
+    }
     applyStaticI18n();
-    initInstall();
-    await gate();
-    DATA = prepare(await loadData());
-    renderHero(); renderNav(); renderProgress(); renderPanel(); renderSections(); renderGalerie(); initLightbox();
-    initModes(); initScrollSpy(); announceNew();
+    renderHeroInstant();                              // titres + compte à rebours tout de suite
+    initInstall(); initLightbox(); initAnchors();
+    const nav = $('#nav'), upd = () => nav.classList.toggle('scrolled', scrollY > 60);
+    addEventListener('scroll', upd, { passive: true }); upd();
+    $('#cpPanel').addEventListener('click', ev => { const b = ev.target.closest('.cp'); if (b) selectStage(b.dataset.id, true); });
     $('#btnTour').addEventListener('click', () => touring ? stopTour() : startTour());
     $('#btnReset').addEventListener('click', () => { stopTour(); map && VIEW && map.flyTo({ center: VIEW.center, zoom: VIEW.zoom, pitch: VIEW.pitch, bearing: VIEW.bearing, duration: 2200 }); });
-    const y = sessionStorage.getItem(SCROLL_KEY);
-    if (y !== null) { sessionStorage.removeItem(SCROLL_KEY); setTimeout(() => scrollTo({ top: +y, behavior: 'instant' }), 50); }
+    initModes();
+
+    const frais = fetchData();                        // la requête part tout de suite, même pendant le code d'accès
+    await gate();
+    const cache = readCache();
+    if (cache) { renderAll(cache); announceNew(); }   // visite suivante : tout s'affiche instantanément
+    const d = await frais;
+    if (d) { const premier = !DATA; renderAll(d, !premier); if (premier) announceNew(); }
+    else if (!DATA) { renderAll(C.demo); announceNew(); }
+
+    if (y !== null) { sessionStorage.removeItem(SCROLL_KEY); setTimeout(() => scrollTo({ top: +y, behavior: 'instant' }), 80); }
   }
   start();
 })();

@@ -1,5 +1,20 @@
 # UTMB – Journal des versions
 
+## V1.4.1 — Performance & corrections
+- Chargement : accueil (titres, compte à rebours, altimètre) affiché immédiatement, sans attendre les données
+- Visites suivantes instantanées : affichage depuis la mémoire du téléphone, mise à jour en arrière-plan
+- Carte 3D (MapLibre ~800 Ko + tuiles) chargée seulement à l'approche de la section Parcours
+- Polices non bloquantes, photos Drive téléchargées à la taille de l'écran
+- Plus de « #parcours » collé à l'adresse : le site s'ouvre toujours sur l'accueil
+- Requête de données lancée pendant la saisie du code d'accès
+- Apps Script : cache 6 h vidé automatiquement à chaque modification du Sheet, liste des photos en cache,
+  plus de contrôle de partage photo par photo à chaque visite, préchauffage toutes les 10 min
+- Corrections mobile : options de choix qui débordaient, pastilles (anneau coupé), compte à rebours et
+  accueil qui dépassaient sur petits écrans (320 px), dossard qui chevauchait les boutons
+- Corrections : écouteurs/minuteurs dupliqués lors d'un nouveau rendu, message « touchez à nouveau » parasite
+  au lancement, données conservées si l'invité est en train de remplir un formulaire
+- ⚠️ Code.gs modifié → coller + New version + 🏔️ UTMB › Mettre à jour la structure (active le préchauffage)
+
 ## V1.4.0 — Formulaires pilotés par le Sheet
 - Nouvel onglet « Questions » : ajouter / modifier / masquer / réordonner les questions sans toucher au code
 - 10 types : texte, texte_long, email, telephone, nombre (min;max), date, ouinon, choix, cases, liste
