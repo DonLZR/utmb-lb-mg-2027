@@ -23,7 +23,7 @@
   <link rel="preconnect" href="https://script.google.com">
   <link rel="preconnect" href="https://script.googleusercontent.com">
   <link rel="dns-prefetch" href="https://unpkg.com">
-  <link rel="stylesheet" href="style.css?v=1.5.1">
+  <link rel="stylesheet" href="style.css?v=1.6.0">
 </head>
 <body class="chargement">
 
@@ -47,9 +47,11 @@
         <a href="#top" class="nav-logo">U·T·M·B</a>
         <div class="lang" data-lang-switch role="group" aria-label="Langue / Lingua / Idioma"></div>
       </div>
-      <button type="button" class="btn-install" id="btnInstall" hidden data-i18n="installer">📲 Installer l'appli</button>
     </div>
-    <nav id="navLinks" class="nav-links" aria-label="Sections"></nav>
+    <div class="nav-right">
+      <button type="button" class="btn-install" id="btnInstall" hidden><span class="bi-ico" aria-hidden="true">📲</span><span class="bi-txt" data-i18n="installer_court">Installer l'appli</span></button>
+      <nav id="navLinks" class="nav-links" aria-label="Sections"></nav>
+    </div>
   </header>
 
   <!-- Accueil -->
@@ -137,9 +139,12 @@
   </footer>
 
   <!-- Visionneuse -->
-  <div class="lightbox" id="lightbox" hidden>
+  <div class="lightbox" id="lightbox" hidden role="dialog" aria-modal="true">
     <button type="button" class="lb-close" id="lbClose" aria-label="✕">✕</button>
+    <button type="button" class="lb-nav lb-prev" id="lbPrev" aria-label="‹">‹</button>
     <img id="lbImg" alt="">
+    <button type="button" class="lb-nav lb-next" id="lbNext" aria-label="›">›</button>
+    <span class="lb-count" id="lbCount" aria-live="polite"></span>
   </div>
 
   <!-- Aide installation iPhone -->
@@ -157,9 +162,9 @@
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-  <script src="cles.js?v=1.5.1"></script>
-  <script src="config.js?v=1.5.1"></script>
-  <script src="i18n.js?v=1.5.1"></script>
-  <script src="app.js?v=1.5.1"></script>
+  <script src="cles.js?v=1.6.0"></script>
+  <script src="config.js?v=1.6.0"></script>
+  <script src="i18n.js?v=1.6.0"></script>
+  <script src="app.js?v=1.6.0"></script>
 </body>
 </html>

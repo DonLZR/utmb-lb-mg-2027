@@ -1,8 +1,16 @@
 # UTMB – Journal des versions
 
+## V1.6.0 — Accueil plein écran, visionneuse, carte
+- Accueil : photo de nouveau en plein écran (recadrée), avec le léger zoom lent d'origine
+- Bouton « Installer l'appli » déplacé dans le bandeau supérieur, à gauche des étapes (icône 📲 seule sur téléphone)
+- Carte 3D et 2D : l'arrivée (marqueur superposé au départ) est toujours affichée à gauche du départ, quelle que soit l'orientation
+- Visionneuse photo : flèches ‹ › pour passer d'une photo à l'autre (bandeaux, photos d'étapes, galerie), compteur « 3 / 7 »,
+  flèches du clavier, glisser du doigt sur téléphone ; photos des bandeaux dédoublonnées
+- Code.gs inchangé (pas de redéploiement)
+
 ## V1.5.1 — Renommage
 - « Ultra Trail du Mariage Bossi » partout (titre d'onglet, accueil, pied de page, données de démo, Code.gs)
-- ⚠️ Le sous-titre affiché vient du Sheet : Parametres › sous_titre à modifier à la main 
+- ⚠️ Le sous-titre affiché vient du Sheet : Parametres › sous_titre à modifier à la main
 
 ## V1.5.0 — Accueil, 2D aérienne, hébergements
 - Accueil : photo affichée en entier (plus de recadrage ni d'effet zoom), bords comblés par la même photo floutée

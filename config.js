@@ -4,7 +4,7 @@
    (onglet Parametres) priment sur les valeurs ci-dessous.
    ========================================================= */
 window.UTMB_CONFIG = {
-  version: "1.5.1",
+version: "1.6.0",
 
   apiUrl: (window.UTMB_CLES && window.UTMB_CLES.apiUrl) || "",
   accessCodeHash: (window.UTMB_CLES && window.UTMB_CLES.accessCodeHash) || "",

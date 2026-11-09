@@ -1,4 +1,4 @@
-/* UTMB — moteur du site V1.5.1 (le contenu se gère dans le Google Sheet) */
+/* UTMB —moteur du site V1.6.0 (le contenu se gère dans le Google Sheet) */
 (() => {
   'use strict';
   const C = window.UTMB_CONFIG, I18N = window.UTMB_I18N, FLAGS = window.UTMB_FLAGS;
@@ -212,11 +212,9 @@
     const bg = $('#heroBg'), imgs = photos('accueil');
     clearInterval(slideTimer);
     bg.classList.toggle('empty', !imgs.length);
-    /* Photo affichée en entier (sans recadrage) ; les bords sont comblés par la même photo, floutée */
-    bg.innerHTML = imgs.map((u, i) => {
-      const src = esc(sized(u, ecranW()));
-      return `<div class="slide" style="--bg:url('${src}')"><img src="${src}" alt="" decoding="async"${i ? ' loading="lazy"' : ' fetchpriority="high"'}></div>`;
-    }).join('');
+    /* Photo plein écran (comme avant la V1.5) */
+    bg.innerHTML = imgs.map((u, i) =>
+      `<div class="slide"><img src="${esc(sized(u, ecranW()))}" alt="" decoding="async"${i ? ' loading="lazy"' : ' fetchpriority="high"'}></div>`).join('');
     const els = bg.querySelectorAll('.slide');
     if (els.length) {
       let k = 0; els[0].classList.add('on');
@@ -423,7 +421,7 @@
       .sort((a, b) => (isOpen(a.e) - isOpen(b.e)) || (b.i - a.i)); // verrouillées dessous, étape 1 au-dessus
     const mk = order.map(({ e, i }) => {
       const st = statut(e), locked = st === 'verrouille';
-      const dx = stacked.has(e.id) ? 20 * u : 0, dy = stacked.has(e.id) ? -14 * u : 0;
+        const dx = stacked.has(e.id) ? -32 * u : 0, dy = stacked.has(e.id) ? -10 * u : 0;   // superposé : à gauche
       const x = X(e.lng) + dx, y = Y(e.lat) + dy, r = (locked ? 13 : 16) * u;
       return `<g class="m2-mk ${locked ? 'locked' : st}" data-id="${esc(e.id)}" tabindex="0" role="button" aria-label="${esc(e.titre)}">
         <circle cx="${x}" cy="${y}" r="${r}"/><text x="${x}" y="${y}" font-size="${fs(locked ? 11 : 14)}">${locked ? '🔒' : i + 1}</text>
@@ -516,7 +514,7 @@
           el.appendChild(pin);
           el.addEventListener('click', ev => { ev.stopPropagation(); selectStage(e.id, true); });
           const opts = { element: el };
-          if (stacked.has(e.id)) opts.offset = [26, -18]; // décale le marqueur superposé
+            if (stacked.has(e.id)) opts.offset = [-36, -12]; // marqueur superposé : toujours à gauche (décalage écran, quelle que soit l'orientation)
           markers[e.id] = new maplibregl.Marker(opts).setLngLat([e.lng, e.lat]).addTo(map);
         });
     });
@@ -735,16 +733,44 @@
     } finally { btn.disabled = false; btn.textContent = label; }
   }
 
-  /* ---------- Visionneuse ---------- */
+  /* ---------- Visionneuse : flèches, clavier, glisser du doigt ---------- */
+  let lbList = [], lbIdx = 0;
+  function lbShow(i) {
+    if (!lbList.length) return;
+    lbIdx = (i + lbList.length) % lbList.length;
+    $('#lbImg').src = sized(lbList[lbIdx], 2400);
+    const multi = lbList.length > 1;
+    $('#lbPrev').hidden = !multi; $('#lbNext').hidden = !multi;
+    $('#lbCount').textContent = multi ? `${lbIdx + 1} / ${lbList.length}` : '';
+    if (multi) [lbIdx - 1, lbIdx + 1].forEach(k => { const im = new Image(); im.src = sized(lbList[(k + lbList.length) % lbList.length], 2400); });
+  }
   function initLightbox() {
     document.addEventListener('click', e => {
       const img = e.target.closest('img[data-zoom]'); if (!img) return;
-      $('#lbImg').src = sized(img.dataset.full || img.src, 2400); $('#lightbox').hidden = false;
+      const zone = img.closest('.strip-track, .stage-photos, .grid') || img.parentElement;
+      const full = el => el.dataset.full || el.src;
+      lbList = [...new Set([...zone.querySelectorAll('img[data-zoom]')].map(full))];   // bandeaux : photos dédoublonnées
+      $('#lightbox').hidden = false; document.body.style.overflow = 'hidden';
+      lbShow(Math.max(0, lbList.indexOf(full(img))));
     });
-    const closeLb = () => { $('#lightbox').hidden = true; $('#lbImg').src = ''; };
+    const closeLb = () => { $('#lightbox').hidden = true; $('#lbImg').src = ''; document.body.style.overflow = ''; };
     $('#lbClose').addEventListener('click', closeLb);
+    $('#lbPrev').addEventListener('click', ev => { ev.stopPropagation(); lbShow(lbIdx - 1); });
+    $('#lbNext').addEventListener('click', ev => { ev.stopPropagation(); lbShow(lbIdx + 1); });
     $('#lightbox').addEventListener('click', e => { if (e.target.id === 'lightbox') closeLb(); });
-    addEventListener('keydown', e => { if (e.key === 'Escape') { closeLb(); $('#iosModal').hidden = true; } });
+    addEventListener('keydown', e => {
+      if (e.key === 'Escape') { if (!$('#lightbox').hidden) closeLb(); $('#iosModal').hidden = true; }
+      if ($('#lightbox').hidden) return;
+      if (e.key === 'ArrowLeft') lbShow(lbIdx - 1);
+      if (e.key === 'ArrowRight') lbShow(lbIdx + 1);
+    });
+    let x0 = null, y0 = null;
+    $('#lightbox').addEventListener('touchstart', e => { x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; }, { passive: true });
+    $('#lightbox').addEventListener('touchend', e => {
+      if (x0 === null) return;
+      const dx = e.changedTouches[0].clientX - x0, dy = e.changedTouches[0].clientY - y0; x0 = null;
+      if (Math.abs(dx) > 45 && Math.abs(dx) > Math.abs(dy)) lbShow(lbIdx + (dx < 0 ? 1 : -1));
+    }, { passive: true });
   }
 
   /* ---------- Navigation interne sans « #ancre » dans l'adresse ---------- */
