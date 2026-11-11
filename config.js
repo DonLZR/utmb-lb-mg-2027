@@ -4,7 +4,7 @@
    (onglet Parametres) priment sur les valeurs ci-dessous.
    ========================================================= */
 window.UTMB_CONFIG = {
-version: "2.0.0",
+version: "2.1.0",
 
   apiUrl: (window.UTMB_CLES && window.UTMB_CLES.apiUrl) || "",
   accessCodeHash: (window.UTMB_CLES && window.UTMB_CLES.accessCodeHash) || "",
@@ -57,7 +57,8 @@ version: "2.0.0",
       date_mariage: "",
       lieu: "Bretagne — [à compléter]",
       message_accueil: "Chaussez vos baskets : la course la plus folle de l'année se prépare. Suivez le parcours, débloquez les ravitos au fil de nos annonces… et rendez-vous sur la ligne d'arrivée !",
-      date_limite_reponse: "[à compléter]"
+      date_limite_reponse: "[à compléter]",
+      carte_zoom_etape: 10.8
     },
     etapes: [
       { id:"etape-1", ordre:1, cp:"Départ", lieu:"Chamonix", km:0, altitude:1035, titre:"Le Départ", sous_titre:"Retrait des dossards", type:"texte", statut:"ouvert", indice:"", lat:45.9237, lng:6.8694,

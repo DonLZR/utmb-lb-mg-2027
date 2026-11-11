@@ -1,4 +1,4 @@
-/* UTMB — Coach la marmotte (V2.0.0)
+/* UTMB — Coach la marmotte (V2.1.0)
    Module chargé À LA DEMANDE uniquement (jamais au démarrage de la page) par app.js.
    1 seule image (coach.webp, ~60 Ko) + animations Web Animations API (transform / opacity).
    7 animations : coucou, jumelles, montre, ravito (aléatoires) + dossard, deblocage, matos (événements). */
@@ -6,14 +6,14 @@
   'use strict';
   if (window.UTMB_COACH) return;
   const BASE = (document.currentScript && document.currentScript.src.replace(/coach\.js.*$/, '')) || 'assets/coach/';
-  const IMG = BASE + 'coach.webp?v=2.0.0';
+  const IMG = BASE + 'coach.webp?v=2.1.0';
   const RATIO = 315 / 560;                       // largeur / hauteur de coach.webp
   const VUES_KEY = 'utmb_coach_vues', OFF_KEY = 'utmb_coach_off';
 
   /* ---------- Pancartes FR / IT / ES ---------- */
   const TXT = {
     fr: { coucou: ['Coucou ! 👋', 'Salut la compagnie ! 👋', 'Toujours là ? Moi aussi ! 😄'],
-          jumelles: ['Je garde un œil sur vous 👀', 'M&L vous surveillent 👀', 'Je repère le prochain ravito… 🔭'],
+          jumelles: ['Je garde un œil sur vous 👀', 'Marie et Lorenzo vous surveillent 👀', 'Je repère le prochain ravito… 🔭'],
           montre: ['Le chrono tourne, on avance ! ⏱️', 'Courage, la ligne approche !', 'Allez, on garde le rythme ! 💪'],
           ravito: ['Ravito bientôt ! 💧', 'Pense à bien t\'hydrater ! 💧', 'Une petite gorgée et on repart ! 🧃'],
           dossard: ['Bienvenue dans la course ! 🏅', 'Bienvenue dans la course ! Dossard n° {n} 🏅'],
@@ -21,7 +21,7 @@
           matos: ['N\'oublie pas de vérifier ton matos ! 🎒'],
           voir: 'Voir', masquer: 'Masquer Coach' },
     it: { coucou: ['Ciao! 👋', 'Ciao a tutti! 👋', 'Ancora qui? Anch\'io! 😄'],
-          jumelles: ['Vi tengo d\'occhio 👀', 'M&L vi tengono d\'occhio 👀', 'Cerco il prossimo ristoro… 🔭'],
+          jumelles: ['Vi tengo d\'occhio 👀', 'Marie e Lorenzo vi tengono d\'occhio 👀', 'Cerco il prossimo ristoro… 🔭'],
           montre: ['Il cronometro corre, avanti! ⏱️', 'Coraggio, il traguardo si avvicina!', 'Dai, teniamo il ritmo! 💪'],
           ravito: ['Ristoro in arrivo! 💧', 'Ricordati di bere! 💧', 'Un sorso e si riparte! 🧃'],
           dossard: ['Benvenuti in gara! 🏅', 'Benvenuti in gara! Pettorale n° {n} 🏅'],
@@ -29,7 +29,7 @@
           matos: ['Non dimenticare di controllare l\'attrezzatura! 🎒'],
           voir: 'Vedi', masquer: 'Nascondi Coach' },
     es: { coucou: ['¡Hola! 👋', '¡Hola a todos! 👋', '¿Siguen ahí? ¡Yo también! 😄'],
-          jumelles: ['Los tengo vigilados 👀', 'M&L los están vigilando 👀', 'Busco el próximo avituallamiento… 🔭'],
+          jumelles: ['Los tengo vigilados 👀', 'Marie y Lorenzo los están vigilando 👀', 'Busco el próximo avituallamiento… 🔭'],
           montre: ['El cronómetro corre, ¡a avanzar! ⏱️', '¡Ánimo, la meta se acerca!', '¡Vamos, mantengamos el ritmo! 💪'],
           ravito: ['¡Avituallamiento pronto! 💧', '¡No olvides hidratarte! 💧', '¡Un sorbo y seguimos! 🧃'],
           dossard: ['¡Bienvenidos a la carrera! 🏅', '¡Bienvenidos a la carrera! Dorsal n.º {n} 🏅'],
@@ -39,16 +39,15 @@
   };
 
   /* ---------- Les 7 animations ----------
-     cote : depuis quel bord Coach apparaît (droite = patte qui salue visible ; gauche = montre visible)
-     prop : accessoire (émoji) et sa position sur l'image (% largeur, % hauteur) */
+     Coach conserve uniquement ses mouvements et ses bulles : aucun accessoire emoji n'est superposé au personnage. */
   const ANIMS = {
-    coucou:    { cote: 'droite', prop: null,                        duree: 3600 },
-    jumelles:  { cote: 'any',    prop: { e: '🔭', x: 54, y: 14 },   duree: 4200 },
-    montre:    { cote: 'gauche', prop: { e: '⌚', x: 74, y: 50 },   duree: 3800 },
-    ravito:    { cote: 'any',    prop: { e: '💧', x: 46, y: 30 },   duree: 3800 },
-    dossard:   { cote: 'bas',    prop: { e: '🏅', x: 50, y: 50 },   duree: 4600 },
-    deblocage: { cote: 'any',    prop: { e: '🔓', x: 20, y: 12 },   duree: 4600 },
-    matos:     { cote: 'bas',    prop: { e: '🎒', x: 78, y: 40 },   duree: 4200 }
+    coucou:    { cote: 'droite', duree: 3600 },
+    jumelles:  { cote: 'any',    duree: 4200 },
+    montre:    { cote: 'gauche', duree: 3800 },
+    ravito:    { cote: 'any',    duree: 3800 },
+    dossard:   { cote: 'bas',    duree: 4600 },
+    deblocage: { cote: 'any',    duree: 4600 },
+    matos:     { cote: 'bas',    duree: 4200 }
   };
   const ALEATOIRES = ['coucou', 'jumelles', 'montre', 'ravito'];
 
@@ -73,7 +72,6 @@
 .coach-body img{transform-origin:50% 100%;width:100%;height:100%;display:block;pointer-events:auto;cursor:pointer;user-select:none;-webkit-user-drag:none;
   filter:drop-shadow(0 10px 14px rgba(20,30,24,.38)) drop-shadow(0 2px 3px rgba(0,0,0,.25))}
 .coach-shadow{position:absolute;left:18%;right:18%;bottom:-2%;height:6%;border-radius:50%;background:radial-gradient(closest-side,rgba(0,0,0,.35),transparent);filter:blur(2px)}
-.coach-prop{position:absolute;transform:translate(-50%,-50%);line-height:1;filter:drop-shadow(0 3px 4px rgba(0,0,0,.35));pointer-events:none}
 .coach-bubble{position:absolute;pointer-events:auto;width:max-content;max-width:min(250px,64vw);background:#fffdf8;color:#24382c;font:700 .92rem/1.3 'Inter',system-ui,sans-serif;
   padding:.6rem .8rem;border-radius:16px;border:2px solid #24382c;box-shadow:0 10px 24px -10px rgba(0,0,0,.45);opacity:0;white-space:normal}
 .coach-bubble::after{content:"";position:absolute;bottom:-9px;width:14px;height:14px;background:#fffdf8;border-right:2px solid #24382c;border-bottom:2px solid #24382c;transform:rotate(45deg)}
@@ -148,11 +146,6 @@
     const el = document.createElement('div'); el.className = 'coach';
     el.style.width = W + 'px'; el.style.height = H + 'px';
     el.innerHTML = `<div class="coach-shadow"></div><div class="coach-body"><div class="coach-gest"><img src="${IMG}" alt="Coach" draggable="false"></div></div>`;
-    if (a.prop) {
-      const p = document.createElement('span'); p.className = 'coach-prop'; p.textContent = a.prop.e;
-      p.style.left = a.prop.x + '%'; p.style.top = a.prop.y + '%'; p.style.fontSize = Math.round(H * 0.15) + 'px'; p.style.opacity = '0';
-      el.querySelector('.coach-gest').appendChild(p);
-    }
     /* Position */
     perchEl = null;
     let x, y;
@@ -241,7 +234,6 @@
       : [{ opacity: 1 }, { opacity: 0, transform: 'translateY(-6px) scale(.9)' }],
       { duration: on ? 320 : 200, easing: on ? EASE_IN : 'ease-in', fill: 'forwards' });
   }
-  function prop(c, kf, o) { const p = c.el.querySelector('.coach-prop'); return p ? p.animate(kf, o) : null; }
 
   /* Gestuelle propre à chaque animation (après l'entrée) */
   function geste(c) {
@@ -253,33 +245,24 @@
         return img.animate([R(0), R(-6), R(5), R(-6), R(5), R(-3), R(0)].map(t => ({ transform: t })),
           { duration: 1500, easing: 'ease-in-out' });
       case 'jumelles': // scrute l'horizon lentement
-        prop(c, [{ opacity: 0, transform: 'translate(-50%,-50%) scale(.4)' }, { opacity: 1, transform: 'translate(-50%,-50%) scale(1) rotate(-12deg)' }], { duration: 300, fill: 'forwards' });
         return img.animate([R(0), R(-5), R(-5), R(5), R(5), R(0)].map((t, i) => ({ transform: t, offset: [0, .2, .45, .65, .9, 1][i] })),
           { duration: 2400, easing: 'ease-in-out' });
       case 'montre':   // tapote la montre, impatient
-        prop(c, [{ opacity: 0, transform: 'translate(-50%,-50%) scale(.5)' }, { opacity: 1, transform: 'translate(-50%,-50%) scale(1.25)' }, { opacity: 1, transform: 'translate(-50%,-50%) scale(1)' }], { duration: 600, fill: 'forwards' });
-        prop(c, [{ transform: 'translate(-50%,-50%) scale(1)' }, { transform: 'translate(-50%,-50%) scale(1.25)' }, { transform: 'translate(-50%,-50%) scale(1)' }], { duration: 500, delay: 600, iterations: 3 });
         return img.animate([0, -7, 0, -7, 0, -7, 0].map(v => ({ transform: `translateY(${v}px)` })), { duration: 1500, easing: 'ease-in-out', delay: 200 });
-      case 'ravito':   // renverse la tête pour boire
-        prop(c, [{ opacity: 0, transform: 'translate(-50%,10%) scale(.5)' }, { opacity: 1, transform: 'translate(-50%,-50%) scale(1)' }, { opacity: 1, transform: 'translate(-60%,-120%) scale(.9) rotate(-30deg)' }, { opacity: 0, transform: 'translate(-60%,-160%) scale(.6)' }],
-          { duration: 1900, fill: 'forwards' });
+      case 'ravito':   // mouvement du buste, sans accessoire superposé
         return img.animate([R(0), R(-10), R(-10), R(2), R(0)].map((t, i) => ({ transform: t, offset: [0, .25, .7, .85, 1][i] })),
           { duration: 1900, easing: 'ease-in-out' });
       case 'dossard':  // saute de joie (2 sauts avec écrasement à l'atterrissage) + confettis
         confettis(c);
-        prop(c, [{ opacity: 0, transform: 'translate(-50%,-50%) scale(.3)' }, { opacity: 1, transform: 'translate(-50%,-50%) scale(1.3)' }, { opacity: 1, transform: 'translate(-50%,-50%) scale(1)' }], { duration: 500, fill: 'forwards' });
         return img.animate([
           { transform: 'translateY(0) scale(1,1)' }, { transform: 'translateY(0) scale(1.06,.92)', offset: .1 },
           { transform: 'translateY(-34px) scale(.96,1.05)', offset: .3 }, { transform: 'translateY(0) scale(1.07,.92)', offset: .48 },
           { transform: 'translateY(-26px) scale(.97,1.04)', offset: .68 }, { transform: 'translateY(0) scale(1.05,.95)', offset: .86 },
           { transform: 'translateY(0) scale(1,1)' }], { duration: 1500, easing: 'ease-in-out' });
       case 'deblocage': // pointe le contenu : penché vers l'écran + cadenas qui s'ouvre
-        prop(c, [{ opacity: 0, transform: 'translate(-50%,-50%) scale(.4)' }, { opacity: 1, transform: 'translate(-50%,-50%) scale(1.2) rotate(12deg)' }, { opacity: 1, transform: 'translate(-50%,-50%) scale(1)' }], { duration: 700, fill: 'forwards' });
         return img.animate([R(0), R(-lean * 0.9), R(-lean * 0.3), R(-lean * 0.9), R(0)].map(t => ({ transform: t })),
           { duration: 1700, easing: 'ease-in-out' });
       case 'matos':    // fouille son sac : petites secousses
-        prop(c, [{ opacity: 0, transform: 'translate(-50%,-20%) scale(.5)' }, { opacity: 1, transform: 'translate(-50%,-50%) scale(1)' }], { duration: 400, fill: 'forwards' });
-        prop(c, [-10, 10, -8, 8, 0].map(d => ({ transform: `translate(-50%,-50%) rotate(${d}deg)` })), { duration: 700, delay: 450, iterations: 2 });
         return img.animate([R(0), R(3), R(-3), R(3), R(-3), R(0)].map(t => ({ transform: t })), { duration: 1400, easing: 'ease-in-out', delay: 300 });
     }
     return null;

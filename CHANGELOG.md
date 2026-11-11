@@ -1,5 +1,14 @@
 # UTMB – Journal des versions
 
+## V2.1.0 — Coach épuré, carte aérienne, badges séquentiels, lexique de traduction
+- Coach : accessoires emoji et animations associées retirés ; bulles conservées avec leurs emojis
+- Coach : « M&L » remplacé par « Marie et Lorenzo » dans les trois langues
+- Carte 3D : clic sur une étape moins rapproché et plus aérien ; nouveau réglage Sheet `carte_zoom_etape` (10,8 par défaut)
+- Badge « Nouveau » : une seule étape à la fois ; l'ancienne perd son badge dès qu'une nouvelle devient disponible
+- Si l'étape suivante reste bloquée, le badge de l'étape courante disparaît dès que son formulaire est envoyé
+- Traduction : nouvel onglet `Corrections_traduction` pour remplacer globalement un mot ou une expression en IT/ES, sans modifier le code
+- Déploiement : `Code.gs` modifié → coller + enregistrer + **Nouveau déploiement / nouvelle version**, puis `🏔️ UTMB › Mettre à jour la structure`
+
 ## V2.0.0 — Coach la marmotte
 - Coach (assets/coach/) : 7 animations — coucou, jumelles, montre, ravito (aléatoires) ; dossard, déblocage, matos (événements)
 - 0 fichier Coach au démarrage : module + image (~85 Ko) chargés à la 1re apparition (25–50 s, navigateur au repos)

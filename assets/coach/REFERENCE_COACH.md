@@ -17,7 +17,7 @@ Visuel maître validé par Lorenzo. Toute future pose doit conserver strictement
 ## Règles de continuité
 1. Ne jamais redessiner Coach depuis zéro lorsqu’un asset de référence est disponible.
 2. Utiliser `coach_reference.webp` comme source visuelle de toute nouvelle pose.
-3. Ne modifier que la pose, la gestuelle ou l’accessoire demandé.
+3. Ne modifier que la pose ou la gestuelle demandée ; ne jamais superposer d’accessoire emoji au personnage.
 4. Conserver visage, morphologie, fourrure, lunettes, casquette, gilet, chaussures, montre et dossard.
 5. Les pancartes doivent rester vierges dans les assets. Leur texte est ajouté par le site en HTML pour FR / IT / ES.
 6. Aucun son automatique.

@@ -1,4 +1,4 @@
-/* UTMB — moteur du site V2.0.0 (le contenu se gère dans le Google Sheet) */
+/* UTMB — moteur du site V2.1.0 (le contenu se gère dans le Google Sheet) */
 (() => {
   'use strict';
   const C = window.UTMB_CONFIG, I18N = window.UTMB_I18N, FLAGS = window.UTMB_FLAGS;
@@ -167,6 +167,20 @@ let DATA = null, DATA_SIG = '', RAW = null, map = null, VIEW = null, markers = {
         }
       });
       try { localStorage.setItem(UNLOCK_KEY, JSON.stringify(unl)); } catch (err) {}
+
+      /* Badge « Nouveau » : une seule étape à la fois.
+         - dès qu'une étape plus récente est nouvelle, les précédentes repassent ouvertes ;
+         - si le formulaire de l'étape courante a déjà été envoyé et que la suivante reste verrouillée,
+           son badge disparaît également (ex. Hébergement renseigné, étape 4 encore bloquée). */
+      const nouveaux = d.etapes.filter(e => statut(e) === 'nouveau');
+      if (nouveaux.length) {
+        const courant = nouveaux[nouveaux.length - 1];
+        nouveaux.slice(0, -1).forEach(e => { e.statut = 'ouvert'; });
+        const ty = norm(courant.type), form = ty.startsWith('formulaire:') ? norm(ty.split(':')[1])
+          : (['presence', 'hebergement'].includes(ty) ? ty : '');
+        const idx = d.etapes.indexOf(courant), suivant = d.etapes[idx + 1];
+        if (form && formsFaits()[form] && (!suivant || statut(suivant) === 'verrouille')) courant.statut = 'ouvert';
+      }
     d.hebergements = d.hebergements || []; d.programme = d.programme || []; d.photos = d.photos || {};
     return d;
   }
@@ -409,7 +423,8 @@ let DATA = null, DATA_SIG = '', RAW = null, map = null, VIEW = null, markers = {
     document.querySelectorAll('.m2-mk').forEach(g => g.classList.toggle('active', g.dataset.id === id));
     if (fly && MODE === '3d' && map && !isNaN(e.lat)) {
       stopTour();
-      map.flyTo({ center: [e.lng, e.lat], zoom: 12.6, pitch: 66, bearing: VIEW.bearing + 20, duration: 2800, essential: true });
+      const zEtape = Math.min(16, Math.max(6, num(DATA.parametres.carte_zoom_etape) ?? 10.8));
+      map.flyTo({ center: [e.lng, e.lat], zoom: zEtape, pitch: Math.min(60, VIEW.pitch + 3), bearing: VIEW.bearing + 20, duration: 2400, essential: true });
     }
     if (silent) return;
     if (!isOpen(e)) toast(`🔒 ${e.titre} — ${e.indice || t('bientot')}`);
