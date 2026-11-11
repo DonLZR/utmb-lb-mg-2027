@@ -32,7 +32,8 @@ installer: "📲 Installer l'appli", installer_court: "Installer l'appli", insta
       envoi: "Envoi…", ok_dossard: "Inscription validée ! Votre dossard : n° {n} 🏅", ok: "Merci, c'est bien reçu !",
       ok_matos: "N'oublie pas de vérifier ton matos ! 🎒👟🔦⛰️",
       indice_form: "🔓 Se débloque dès que vous aurez répondu à « {t} ».",
-    toast_dossard: "🏅 Dossard attribué — rendez-vous sur la ligne de départ !"
+    toast_dossard: "🏅 Dossard attribué — rendez-vous sur la ligne de départ !",
+    coach_off: "🐾 Masquer Coach", coach_on: "🐾 Faire revenir Coach"
   },
   it: {
     _nom: "Italiano", _locale: "it-IT",
@@ -65,7 +66,8 @@ installer: "📲 Installa l'app", installer_court: "Installa l'app", installe: "
       envoi: "Invio…", ok_dossard: "Iscrizione confermata! Il vostro pettorale: n° {n} 🏅", ok: "Grazie, ricevuto!",
       ok_matos: "Non dimenticare di controllare l'attrezzatura! 🎒👟🔦⛰️",
       indice_form: "🔓 Si sblocca non appena avrete risposto a « {t} ».",
-    toast_dossard: "🏅 Pettorale assegnato — ci vediamo alla partenza!"
+    toast_dossard: "🏅 Pettorale assegnato — ci vediamo alla partenza!",
+    coach_off: "🐾 Nascondi Coach", coach_on: "🐾 Richiama Coach"
   },
   es: {
     _nom: "Español", _locale: "es-CL",
@@ -98,7 +100,8 @@ installer: "📲 Instalar la app", installer_court: "Instalar la app", installe:
       envoi: "Enviando…", ok_dossard: "¡Inscripción confirmada! Su dorsal: n.º {n} 🏅", ok: "¡Gracias, recibido!",
       ok_matos: "¡No olvides revisar tu equipo! 🎒👟🔦⛰️",
       indice_form: "🔓 Se desbloquea en cuanto respondan a « {t} ».",
-    toast_dossard: "🏅 Dorsal asignado — ¡nos vemos en la largada!"
+    toast_dossard: "🏅 Dorsal asignado — ¡nos vemos en la largada!",
+    coach_off: "🐾 Ocultar Coach", coach_on: "🐾 Traer de vuelta a Coach"
   }
 };
 

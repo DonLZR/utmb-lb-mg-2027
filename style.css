@@ -1,4 +1,4 @@
-/* UTMB — Alpin chic & champêtre — V1.8.0 */
+/* UTMB — Alpin chic & champêtre — V2.0.0 */
 :root{
   --forest:#24382c; --forest-2:#2f4a3a; --moss:#6b7f5a; --sage:#a9b79a;
   --cream:#f6f1e7; --linen:#efe7d8; --sand:#d8c3a5; --gold:#b08d57; --gold-2:#c9a66b;
@@ -355,3 +355,8 @@ h1,h2,h3{font-family:var(--serif);font-weight:600;line-height:1.1;margin:0}
 .map{position:relative}
 .map.loading::after{content:"";position:absolute;left:50%;top:50%;width:38px;height:38px;margin:-19px 0 0 -19px;border-radius:50%;border:4px solid rgba(255,255,255,.2);border-top-color:var(--gold-2);animation:tourne .9s linear infinite}
 @keyframes tourne{to{transform:rotate(360deg)}}
+
+/* Coach : seul le bouton du pied de page est dans le chargement initial (aucune image) */
+.coach-toggle{margin-top:.7rem;background:none;border:1px solid rgba(255,255,255,.3);color:var(--linen);border-radius:999px;font:500 .72rem var(--sans);padding:.28rem .75rem;cursor:pointer;opacity:.75;transition:opacity .2s}
+.coach-toggle:hover{opacity:1}
+.coach-toggle:focus-visible{outline:2px solid var(--gold-2);outline-offset:2px}

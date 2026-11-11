@@ -1,5 +1,18 @@
 # UTMB – Journal des versions
 
+## V2.0.0 — Coach la marmotte
+- Coach (assets/coach/) : 7 animations — coucou, jumelles, montre, ravito (aléatoires) ; dossard, déblocage, matos (événements)
+- 0 fichier Coach au démarrage : module + image (~85 Ko) chargés à la 1re apparition (25–50 s, navigateur au repos)
+  ou après une action de l'invité ; animations transform/opacity uniquement
+- Coach se perche sur un titre visible (le titre se décale légèrement), passe par-dessus le texte, suit le défilement
+- Fuite immédiate si l'invité touche / remplit un formulaire (silence 90 s) ; jamais pendant le code d'accès,
+  la visionneuse, la modale iPhone, un onglet en arrière-plan ou avec « Réduire les animations »
+- Max 3 apparitions aléatoires par visite ; pancartes FR / IT / ES ; bouton ✕ et bouton pied de page « Masquer / Faire revenir Coach »
+- Contrôle qualité : ajouter ?coach=demo à l'adresse → les 7 animations à la suite
+- Réglages Sheet (Parametres) : coach_active, coach_mobile, coach_evenements, coach_delai_min/max,
+  coach_intervalle_min/max, coach_max_visite, coach_taille_pc, coach_taille_mobile
+- Code.gs : nouvelles lignes Parametres uniquement → coller + 💾 + 🏔️ UTMB › Mettre à jour la structure (pas de New version)
+
 ## V1.9.0 — Déblocage personnel, dossard vérifié, message matos
 - Nouvelle colonne Etapes « debloquer_si » : section verrouillée pour chaque invité tant qu'il n'a pas répondu au formulaire
   indiqué (ex. « presence » ou « presence=Oui ») ; débloquée instantanément après l'envoi, badge « Nouveau » 48 h

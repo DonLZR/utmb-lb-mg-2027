@@ -4,7 +4,7 @@
    (onglet Parametres) priment sur les valeurs ci-dessous.
    ========================================================= */
 window.UTMB_CONFIG = {
-version: "1.9.0",
+version: "2.0.0",
 
   apiUrl: (window.UTMB_CLES && window.UTMB_CLES.apiUrl) || "",
   accessCodeHash: (window.UTMB_CLES && window.UTMB_CLES.accessCodeHash) || "",
@@ -20,6 +20,15 @@ version: "1.9.0",
   altitudeDepart: 1035,   // Chamonix
   altitudeSommet: 4805,   // Mont Blanc (mesure 2023 : 4 805,59 m)
 
+  /* Coach la marmotte — valeurs par défaut (les lignes « coach_… » de l'onglet Parametres priment)
+     Aucun fichier Coach n'est chargé au démarrage : uniquement à sa 1re apparition. */
+  coach: {
+    active: true, mobile: true, evenements: true,
+    delaiMin: 25, delaiMax: 50,             // 1re apparition (secondes)
+    intervalleMin: 120, intervalleMax: 300,  // apparitions suivantes (secondes)
+    maxVisite: 3,                            // apparitions aléatoires max par visite
+    taillePc: 230, tailleMobile: 160         // hauteur de Coach (px)
+  },
   /* Carte 3D — valeurs par défaut (vue depuis Chamonix vers le Mont Blanc / l'Italie) */
   map: {
     center: [6.92, 45.86],   // [longitude, latitude]

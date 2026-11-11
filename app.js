@@ -1,4 +1,4 @@
-/* UTMB — moteur du site V1.9.0 (le contenu se gère dans le Google Sheet) */
+/* UTMB — moteur du site V2.0.0 (le contenu se gère dans le Google Sheet) */
 (() => {
   'use strict';
   const C = window.UTMB_CONFIG, I18N = window.UTMB_I18N, FLAGS = window.UTMB_FLAGS;
@@ -617,6 +617,7 @@ if (stacked.has(e.id)) opts.offset = [-12, -3]; // marqueur superposé : toujour
     if (fresh.length) {
       const e = fresh[fresh.length - 1];
       setTimeout(() => toast(t('toast_new', { t: e.titre }), 5000), 1200);
+      coachEvent('deblocage', { id: e.id, t: e.titre });
       selectStage(e.id, false, true);
       if (MODE === '3d') { if (map && map.loaded()) selectStage(e.id, true, true); else pendingFly = e.id; }
     }
@@ -824,9 +825,11 @@ if (stacked.has(e.id)) opts.offset = [-12, -3]; // marqueur superposé : toujour
           localStorage.setItem(DOSSARD_KEY, JSON.stringify(d)); showDossard(d);
           texte = t('ok_dossard', { n: String(res.dossard).padStart(3, '0') });
           toast(t('toast_dossard'), 5000);
+          coachEvent('dossard', { n: res.dossard });
         } else {
           if (form === 'presence') { localStorage.removeItem(DOSSARD_KEY); hideDossard(); }   // réponse « Non » : pas de dossard
           texte = form === 'hebergement' ? t('ok') + ' ' + t('ok_matos') : t('ok');
+          if (form === 'hebergement') coachEvent('matos');
         }
         msg.textContent = texte; msg.classList.add('ok');
         /* Une section dépend de ce formulaire ? On la débloque tout de suite */
@@ -947,6 +950,87 @@ if (stacked.has(e.id)) opts.offset = [-12, -3]; // marqueur superposé : toujour
     }
 
     /* ---------- Démarrage ---------- */
+  /* ---------- Coach la marmotte : AUCUN fichier Coach chargé au démarrage ----------
+     Le module (assets/coach/coach.js + coach.webp, ~85 Ko au total) n'est téléchargé qu'au moment
+     de la 1re apparition (25-50 s après l'ouverture, navigateur au repos) ou après une action de l'invité. */
+  const T0 = performance.now();
+  let coachProm = null, coachPlanifie = false, coachPending = null;
+  function coachCfg() {
+    const p = (DATA && DATA.parametres) || {}, d = C.coach || {};
+    const v = (k, def) => { const n = num(p['coach_' + k]); return n === null ? def : n; };
+    const b = (k, def) => { const x = norm(p['coach_' + k]); return x ? ['oui', '1', 'true', 'vrai', 'yes', 'si'].includes(x) : def; };
+    return { active: b('active', d.active !== false), mobile: b('mobile', d.mobile !== false), evenements: b('evenements', d.evenements !== false),
+      delaiMin: v('delai_min', d.delaiMin ?? 25), delaiMax: v('delai_max', d.delaiMax ?? 50),
+      intervalleMin: v('intervalle_min', d.intervalleMin ?? 120), intervalleMax: v('intervalle_max', d.intervalleMax ?? 300),
+      maxVisite: v('max_visite', d.maxVisite ?? 3), taillePc: v('taille_pc', d.taillePc ?? 230), tailleMobile: v('taille_mobile', d.tailleMobile ?? 160) };
+  }
+  const coachParam = () => new URLSearchParams(location.search).get('coach');
+  const coachOff = () => localStorage.getItem('utmb_coach_off') === '1';
+  function coachPossible(cfg) {
+    if (!cfg.active || coachOff() || coachParam() === '0') return false;
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) return false;
+    if (!cfg.mobile && matchMedia('(max-width:820px)').matches) return false;
+    return true;
+  }
+  function chargerCoach() {
+    if (coachProm) return coachProm;
+    coachProm = new Promise((ok, ko) => {
+      const s = document.createElement('script'); s.src = 'assets/coach/coach.js?v=' + C.version; s.async = true;
+      s.onload = () => {
+        if (!window.UTMB_COACH) return ko();
+        window.UTMB_COACH.init({ lang: LANG, cfg: coachCfg(), goTo, onToggle: majCoachToggle });
+        ok(window.UTMB_COACH);
+      };
+      s.onerror = () => { coachProm = null; ko(); };
+      document.head.appendChild(s);
+    });
+    return coachProm;
+  }
+  const auRepos = fn => ('requestIdleCallback' in window) ? requestIdleCallback(fn, { timeout: 4000 }) : setTimeout(fn, 300);
+  const alea = (a, b) => (a + Math.random() * Math.max(0, b - a)) * 1000;
+  function planifierCoach() {
+    majCoachToggle();
+    if (coachParam() === 'demo') {                       // contrôle qualité : les 7 animations à la suite
+      setTimeout(() => chargerCoach().then(m => m.demo()).catch(() => {}), 3000);
+      return;
+    }
+    if (coachPlanifie) return;
+    const cfg = coachCfg();
+    if (!coachPossible(cfg)) return;
+    coachPlanifie = true;
+    setTimeout(() => auRepos(() => chargerCoach().then(m => {
+      if (coachPending) { const p = coachPending; coachPending = null; m.evenement(p.type, p.info); m.start(alea(cfg.intervalleMin, cfg.intervalleMax) / 1000); }
+      else m.start();
+    }).catch(() => {})), alea(cfg.delaiMin, cfg.delaiMax));
+  }
+  function coachEvent(type, info) {
+    const cfg = coachCfg();
+    if (!coachPossible(cfg) || !cfg.evenements) return;
+    const age = performance.now() - T0;
+    /* Pendant les 15 premières secondes : l'événement attend la 1re apparition programmée (aucun chargement au démarrage) */
+    if (age < 15000 && !coachProm) { coachPending = { type, info }; return; }
+    auRepos(() => chargerCoach().then(m => m.evenement(type, info)).catch(() => {}));
+  }
+  function majCoachToggle() {
+    const btn = $('#coachToggle'); if (!btn) return;
+    const cfg = coachCfg();
+    btn.hidden = !cfg.active || matchMedia('(prefers-reduced-motion: reduce)').matches;
+    btn.textContent = t(coachOff() ? 'coach_on' : 'coach_off');
+  }
+  function initCoachToggle() {
+    const btn = $('#coachToggle'); if (!btn) return;
+    btn.addEventListener('click', () => {
+      if (coachOff()) {
+        localStorage.removeItem('utmb_coach_off'); majCoachToggle();
+        chargerCoach().then(m => m.coucou()).catch(() => {});
+        coachPlanifie = false; planifierCoach();
+      } else {
+        localStorage.setItem('utmb_coach_off', '1'); majCoachToggle();
+        if (window.UTMB_COACH) window.UTMB_COACH.masquer();
+      }
+    });
+  }
+
   async function start() {
     if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
     const y = sessionStorage.getItem(SCROLL_KEY);
@@ -956,7 +1040,7 @@ if (stacked.has(e.id)) opts.offset = [-12, -3]; // marqueur superposé : toujour
     }
     applyStaticI18n();
     renderHeroInstant();                              // titres + compte à rebours tout de suite
-    initInstall(); initLightbox(); initAnchors();
+    initInstall(); initLightbox(); initAnchors(); initCoachToggle();
     const nav = $('#nav'), upd = () => nav.classList.toggle('scrolled', scrollY > 60);
     addEventListener('scroll', upd, { passive: true }); upd();
     $('#cpPanel').addEventListener('click', ev => { const b = ev.target.closest('.cp'); if (b) selectStage(b.dataset.id, true); });
@@ -974,6 +1058,7 @@ if (stacked.has(e.id)) opts.offset = [-12, -3]; // marqueur superposé : toujour
 
       if (y !== null) { sessionStorage.removeItem(SCROLL_KEY); setTimeout(() => scrollTo({ top: +y, behavior: 'instant' }), 80); }
       verifierMemoire();
+      planifierCoach();
   }
   start();
 })();
