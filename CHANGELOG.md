@@ -1,6 +1,6 @@
 # UTMB – Journal des versions
 
-## V2.1.0 — Coach épuré, carte aérienne, badges séquentiels, lexique de traduction
+## V2.1.0 — Coach épuré, carte aérienne, badges séquentiels, lexique de traduction 
 - Coach : accessoires emoji et animations associées retirés ; bulles conservées avec leurs emojis
 - Coach : « M&L » remplacé par « Marie et Lorenzo » dans les trois langues
 - Carte 3D : clic sur une étape moins rapproché et plus aérien ; nouveau réglage Sheet `carte_zoom_etape` (10,8 par défaut)
