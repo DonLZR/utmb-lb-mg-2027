@@ -4,7 +4,7 @@
    (onglet Parametres) priment sur les valeurs ci-dessous.
    ========================================================= */
 window.UTMB_CONFIG = {
-version: "2.1.0",
+  version: "2.2.0",
 
   apiUrl: (window.UTMB_CLES && window.UTMB_CLES.apiUrl) || "",
   accessCodeHash: (window.UTMB_CLES && window.UTMB_CLES.accessCodeHash) || "",
@@ -84,7 +84,7 @@ version: "2.1.0",
       presence: [
         { id:"nom", question:"Nom & prénom", type:"texte", obligatoire:true },
         { id:"email", question:"E-mail", type:"email" },
-        { id:"presence", question:"Serez-vous sur la ligne de départ ?", type:"choix", obligatoire:true,
+        { id:"presence", question:"Serez-vous sur la ligne de départ ?", type:"pastilles", mode_selection:"unique", obligatoire:true,
           options:[{ v:"Oui", l:"🏃 Je prends le départ !" }, { v:"Non", l:"🫶 Abandon… mais de tout cœur avec vous" }] },
         { id:"adultes", question:"Nombre d'adultes", type:"nombre", min:0, max:20, defaut:1, obligatoire:true, si:"presence=Oui" },
         { id:"enfants", question:"Nombre d'enfants", type:"nombre", min:0, max:20, defaut:0, si:"presence=Oui" },

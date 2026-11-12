@@ -1,7 +1,18 @@
 # UTMB – Journal des versions
 
-## V2.1.0 — Coach épuré, carte aérienne, badges séquentiels, lexique de traduction 
-- Coach : accessoires emoji et animations associées retirés ; bulles conservées avec leurs emojis 
+## V2.2.0 — Sélections par pastilles pilotées depuis le Sheet
+- Nouveau type de question `pastilles` dans l’onglet `Questions`
+- Nouvelle colonne `mode_selection` : `unique` (une réponse) ou `multiple` (plusieurs réponses)
+- Options toujours définies dans la colonne `options`, séparées par `;`, avec le format facultatif `valeur=libellé`
+- Formulaire Présence : la question « Serez-vous sur la ligne de départ ? » utilise désormais des pastilles en choix unique
+- Migration sûre : `🏔️ UTMB › Mettre à jour la structure` ajoute la colonne sans déplacer les données et convertit uniquement le choix Présence d’origine
+- Choix multiples enregistrés dans `Reponses_…` sous forme de valeurs séparées par `; `
+- Compatibilité conservée avec les types historiques `choix`, `cases`, `ouinon` et `liste`
+- Accessibilité : sélection utilisable au clavier, focus visible et contrôles natifs conservés pour les lecteurs d’écran
+- ⚠️ `Code.gs` modifié → coller + enregistrer + créer une nouvelle version du déploiement Apps Script, puis mettre à jour la structure
+
+## V2.1.0 — Coach épuré, carte aérienne, badges séquentiels, lexique de traduction
+- Coach : accessoires emoji et animations associées retirés ; bulles conservées avec leurs emojis
 - Coach : « M&L » remplacé par « Marie et Lorenzo » dans les trois langues
 - Carte 3D : clic sur une étape moins rapproché et plus aérien ; nouveau réglage Sheet `carte_zoom_etape` (10,8 par défaut)
 - Badge « Nouveau » : une seule étape à la fois ; l'ancienne perd son badge dès qu'une nouvelle devient disponible

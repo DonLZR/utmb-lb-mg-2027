@@ -1,4 +1,4 @@
-/* UTMB — moteur du site V2.1.0 (le contenu se gère dans le Google Sheet) */
+/* UTMB — moteur du site V2.2.0 (le contenu se gère dans le Google Sheet) */
 (() => {
   'use strict';
   const C = window.UTMB_CONFIG, I18N = window.UTMB_I18N, FLAGS = window.UTMB_FLAGS;
@@ -654,6 +654,7 @@ if (stacked.has(e.id)) opts.offset = [-12, -3]; // marqueur superposé : toujour
   const DEMI = ['texte', 'email', 'telephone', 'nombre', 'date', 'liste'];
   const formulaires = () => (DATA.formulaires && Object.keys(DATA.formulaires).length) ? DATA.formulaires : (C.demo.formulaires || {});
   const vide = v => v == null || (Array.isArray(v) ? v.length === 0 : String(v).trim() === '');
+  const choixMultiple = q => q.type === 'cases' || (q.type === 'pastilles' && norm(q.mode_selection) === 'multiple');
 
   /* « presence=Oui », « presence!=Non », « besoin=A|B » */
   function condOk(si, rep) {
@@ -680,12 +681,12 @@ if (stacked.has(e.id)) opts.offset = [-12, -3]; // marqueur superposé : toujour
       case 'date': inner = lab + `<input id="${id}" name="${nm}" type="date" value="${esc(def)}"${rq}>`; break;
       case 'liste': inner = lab + `<select id="${id}" name="${nm}"${rq}><option value="">${esc(t('choisir'))}</option>` +
         opts.map(o => `<option value="${esc(o.v)}"${norm(o.v) === norm(def) ? ' selected' : ''}>${esc(o.l)}</option>`).join('') + '</select>'; break;
-      case 'choix': case 'ouinon': case 'cases': {
-        const multi = q.type === 'cases';
+      case 'choix': case 'ouinon': case 'cases': case 'pastilles': {
+        const multi = choixMultiple(q), pastilles = q.type === 'pastilles';
         const list = q.type === 'ouinon' && !opts.length ? [{ v: 'Oui', l: t('oui') }, { v: 'Non', l: t('non') }] : opts;
         const defs = def.split(';').map(norm);
-        inner = `<fieldset class="choice-set"><legend>${esc(q.question)}${req}</legend>${q.aide ? `<p class="q-aide">${esc(q.aide)}</p>` : ''}<div class="choice">` +
-          list.map(o => `<label><input type="${multi ? 'checkbox' : 'radio'}" name="${nm}" value="${esc(o.v)}"${defs.includes(norm(o.v)) && def ? ' checked' : ''}><span class="opt">${esc(o.l)}</span></label>`).join('') +
+        inner = `<fieldset class="choice-set${pastilles ? ' pills-set' : ''}"><legend>${esc(q.question)}${req}</legend>${q.aide ? `<p class="q-aide">${esc(q.aide)}</p>` : ''}<div class="choice${pastilles ? ` pills pills-${multi ? 'multi' : 'single'}` : ''}"${pastilles && !multi ? ' role="radiogroup"' : ''}>` +
+          list.map(o => `<label><input type="${multi ? 'checkbox' : 'radio'}" name="${nm}" value="${esc(o.v)}"${defs.includes(norm(o.v)) && def ? ' checked' : ''}${rq}><span class="opt">${esc(o.l)}</span></label>`).join('') +
           '</div></fieldset>';
         break;
       }
@@ -710,7 +711,7 @@ if (stacked.has(e.id)) opts.offset = [-12, -3]; // marqueur superposé : toujour
 
   function lireReponses(f) {
     const fd = new FormData(f), qs = formulaires()[f.dataset.type] || [], rep = {};
-    qs.forEach(q => { rep[q.id] = q.type === 'cases' ? fd.getAll(q.id) : (fd.get(q.id) ?? ''); });
+    qs.forEach(q => { rep[q.id] = choixMultiple(q) ? fd.getAll(q.id) : (fd.get(q.id) ?? ''); });
     return rep;
   }
 
@@ -811,7 +812,7 @@ if (stacked.has(e.id)) opts.offset = [-12, -3]; // marqueur superposé : toujour
       if (!condOk(q.si, rep)) continue;               // question masquée : ignorée
       let v = rep[q.id];
       if (q.obligatoire && vide(v)) return err(t('e_requis', { q: q.question }), q);
-      if (vide(v)) { envoi[q.id] = q.type === 'cases' ? [] : ''; continue; }
+      if (vide(v)) { envoi[q.id] = choixMultiple(q) ? [] : ''; continue; }
       if (q.type === 'email' && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v)) return err(t('e_email'), q);
       if (q.type === 'nombre') {
         const n = Number(v);
@@ -832,7 +833,7 @@ if (stacked.has(e.id)) opts.offset = [-12, -3]; // marqueur superposé : toujour
         f.reset(); majConditions(f);
         /* Mémoire de l'appareil : réponses courtes (choix) pour les déblocages conditionnels */
         const courtes = {};
-        qs.forEach(q => { if (['choix', 'ouinon', 'liste', 'cases'].includes(q.type) && envoi[q.id] !== undefined) courtes[q.id] = envoi[q.id]; });
+        qs.forEach(q => { if (['choix', 'ouinon', 'liste', 'cases', 'pastilles'].includes(q.type) && envoi[q.id] !== undefined) courtes[q.id] = envoi[q.id]; });
         marquerForm(form, jeton, courtes);
         let texte;
         if (form === 'presence' && res.dossard) {
