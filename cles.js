@@ -6,5 +6,5 @@
    ========================================================= */
 window.UTMB_CLES = {
   apiUrl: "https://script.google.com/macros/s/AKfycbwGfRQS1Z0V8N9U2MNVOYCounZabAHdStlwHU3E1gZhJCMzvDcazPj9n1vyeIfSO3xK/exec",          // URL Apps Script se terminant par /exec
-  accessCodeHash: "0855cf25c4ecc9b73aa1183949e67b76ffda26352d656764c5207778d5930c74"   // empreinte générée avec outils/hash.html (vide = pas de code)
+  accessCodeHash: "dc7a8455b7883ac660493a3ad3497d87f304ba370f74115ab038d5db45cf957f"   // empreinte générée avec outils/hash.html (vide = pas de code)
 };
