@@ -1,7 +1,7 @@
 /* UTMB — service worker (appli installable + secours hors ligne)
    Stratégie « réseau d'abord » : les mises à jour du site sont toujours prises en compte. */
-const CACHE = 'utmb-v2.4.1';
-const BASE = ['./', 'index.html', 'style.css?v=2.4.1', 'app.js?v=2.4.1', 'i18n.js?v=2.4.1', 'config.js?v=2.4.1', 'manifest.webmanifest', 'icons/icon-192.png'];
+const CACHE = 'utmb-v2.4.2';
+const BASE = ['./', 'index.html', 'style.css?v=2.4.2', 'app.js?v=2.4.2', 'i18n.js?v=2.4.2', 'config.js?v=2.4.2', 'manifest.webmanifest', 'icons/icon-192.png'];
 
 self.addEventListener('install', e => {
   self.skipWaiting();

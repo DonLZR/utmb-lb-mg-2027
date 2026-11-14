@@ -1,4 +1,4 @@
-/* UTMB — Alpin chic & champêtre — V2.4.1 */
+/* UTMB — Alpin chic & champêtre — V2.4.2 */
 :root{
   --forest:#24382c; --forest-2:#2f4a3a; --moss:#6b7f5a; --sage:#a9b79a;
   --cream:#f6f1e7; --linen:#efe7d8; --sand:#d8c3a5; --gold:#b08d57; --gold-2:#c9a66b;
@@ -70,8 +70,9 @@ h1,h2,h3{font-family:var(--serif);font-weight:600;line-height:1.1;margin:0}
 .hero-sub{font:italic 500 clamp(1.3rem,3.6vw,2.1rem) var(--serif);margin:.4rem 0 1.4rem;color:var(--linen)}
 .hero-names{font:600 clamp(1.8rem,5vw,3rem) var(--serif);margin:0 0 1.4rem}
 .hero-date{font-size:.95rem;letter-spacing:.12em;text-transform:uppercase;color:var(--sand);margin:.4rem 0 2rem}
-.hero-cta{position:absolute;z-index:4;left:50%;bottom:max(2rem,env(safe-area-inset-bottom));transform:translateX(-50%);white-space:nowrap}
-.hero-cta:hover{transform:translate(-50%,-2px)}
+/* Le CTA chevauche toujours la limite entre la photo d’accueil et la section suivante. */
+.hero-cta{position:absolute;z-index:4;left:50%;bottom:0;transform:translate(-50%,50%);white-space:nowrap;box-shadow:0 12px 28px -8px rgba(0,0,0,.45)}
+.hero-cta:hover{transform:translate(-50%,calc(50% - 2px))}
 .hero-panels{position:absolute;z-index:3;left:clamp(1.5rem,5vw,5rem);right:clamp(1.5rem,5vw,5rem);bottom:clamp(6.8rem,12vh,8.5rem);display:grid;grid-template-columns:minmax(290px,360px) minmax(290px,360px);justify-content:space-between;align-items:stretch;gap:clamp(1.5rem,4vw,4rem);pointer-events:none}
 .hero-panels > *{pointer-events:auto}
 .chrono{display:grid;grid-template-columns:repeat(4,minmax(58px,1fr));align-items:center;gap:.35rem;width:100%;min-height:94px;margin:0;padding:.65rem .75rem;border-radius:16px;background:rgba(10,17,13,.28);border:1px solid rgba(255,255,255,.2);box-shadow:0 14px 34px -22px rgba(0,0,0,.9);backdrop-filter:blur(10px) saturate(110%);-webkit-backdrop-filter:blur(10px) saturate(110%)}
@@ -239,7 +240,8 @@ h1,h2,h3{font-family:var(--serif);font-weight:600;line-height:1.1;margin:0}
 .form-msg.ok{color:var(--forest-2)}.form-msg.err{color:#b04030}
 .form-off{font-size:.85rem;color:var(--muted);font-style:italic}
 .form-deadline{grid-column:1/-1;display:flex;align-items:center;gap:.8rem;min-width:0;padding:.85rem 1rem;border:1px solid rgba(176,141,87,.42);border-left:4px solid var(--gold);border-radius:14px;background:linear-gradient(135deg,#fffdf8,#f4ecdd);box-shadow:0 8px 20px -16px rgba(36,56,44,.65);color:var(--forest)}
-.form-deadline-icon{flex:0 0 2.25rem;width:2.25rem;height:2.25rem;display:grid;place-items:center;border-radius:50%;background:var(--forest);font-size:1.05rem}
+.form-deadline-icon{flex:0 0 2.25rem;width:2.25rem;height:2.25rem;display:grid;place-items:center;border-radius:50%;background:var(--forest);color:var(--sand)}
+.form-deadline-icon svg{width:1.1rem;height:1.1rem;display:block;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .form-deadline-text{display:flex;flex-wrap:wrap;align-items:baseline;gap:.2rem .55rem;min-width:0;line-height:1.25}
 .form-deadline-label{font:600 .72rem var(--race);letter-spacing:.12em;text-transform:uppercase;color:var(--gold);overflow-wrap:anywhere}
 .form-deadline-date{font:700 clamp(.95rem,2.3vw,1.08rem) var(--sans);color:var(--forest);overflow-wrap:anywhere}
@@ -330,8 +332,6 @@ h1,h2,h3{font-family:var(--serif);font-weight:600;line-height:1.1;margin:0}
   .cp .badge-coin{right:.7rem;bottom:.5rem;font-size:.52rem}
   .cp.is-new{padding-bottom:1.6rem}
   .stage-head{padding-right:1.2rem}
-  .hero-cta{bottom:0;transform:translate(-50%,50%);box-shadow:0 12px 28px -8px rgba(0,0,0,.45)}
-  .hero-cta:hover{transform:translate(-50%,50%)}
   .intro{padding-top:4.5rem}
 .hero-title{letter-spacing:.04em}
   .chrono{grid-template-columns:repeat(4,minmax(0,1fr));width:100%;max-width:none;gap:.25rem;padding:.55rem .35rem}

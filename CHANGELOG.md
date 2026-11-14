@@ -1,5 +1,12 @@
 # Journal des versions — U.T.M.B.
 
+## V2.4.2 — Bouton de départ à cheval sur l’accueil
+- Le bouton « Prendre le départ » chevauche désormais la limite entre la photo d’accueil et la section suivante sur ordinateur, tablette et mobile.
+- La disposition latérale du compte à rebours et du profil altimétrique de la V2.4.1 est conservée.
+- Les espacements existants maintiennent le CTA à distance du chrono, de l’altimètre, du dossard et du contenu suivant.
+- L’emoji calendrier de l’encart « Date limite de réponse » est remplacé par une icône SVG intégrée neutre, décorative et masquée aux technologies d’assistance avec `aria-hidden`.
+- Aucun changement de données ni d’Apps Script : `Code.gs` V2.4.0 reste compatible et ne doit pas être redéployé.
+
 ## V2.4.1 — Accueil latéral responsive
 - Ordinateur et tablette : compte à rebours à gauche et profil altimétrique à droite, dans deux panneaux symétriques.
 - Panneaux plus transparents, avec flou léger et contour discret pour mieux préserver la photo d’accueil.

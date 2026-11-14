@@ -1,4 +1,4 @@
-/* UTMB — moteur du site V2.4.1 (le contenu se gère dans le Google Sheet) */
+/* UTMB — moteur du site V2.4.2 (le contenu se gère dans le Google Sheet) */
 (() => {
   'use strict';
   const C = window.UTMB_CONFIG, I18N = window.UTMB_I18N, FLAGS = window.UTMB_FLAGS;
@@ -769,7 +769,7 @@ if (stacked.has(e.id)) opts.offset = [-12, -3]; // marqueur superposé : toujour
     if (!qs.length) return '';
     const lim = DATA.parametres.date_limite_reponse;
     const intro = form === 'presence' && lim && !String(lim).includes('[') ? `<div class="form-deadline" role="note">
-      <span class="form-deadline-icon" aria-hidden="true">📅</span><span class="form-deadline-text">
+      <span class="form-deadline-icon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false" aria-hidden="true" fill="none" stroke="#d8c3a5" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3v4M17 3v4M4 9h16M5.5 5h13A1.5 1.5 0 0 1 20 6.5v12a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 18.5v-12A1.5 1.5 0 0 1 5.5 5Z"/></svg></span><span class="form-deadline-text">
       <span class="form-deadline-label">${esc(t('deadline_label'))}</span><strong class="form-deadline-date">${esc(t('deadline_date', { d: lim }))}</strong></span></div>` : '';
     return `<form class="form" data-type="${esc(form)}" novalidate>${intro}
       <div class="form-grid">${qs.map(q => champHtml(q, form)).join('')}</div>
