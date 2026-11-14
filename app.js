@@ -1,4 +1,4 @@
-/* UTMB — moteur du site V2.2.0 (le contenu se gère dans le Google Sheet) */
+/* UTMB — moteur du site V2.4.0 (le contenu se gère dans le Google Sheet) */
 (() => {
   'use strict';
   const C = window.UTMB_CONFIG, I18N = window.UTMB_I18N, FLAGS = window.UTMB_FLAGS;
@@ -18,8 +18,76 @@ let DATA = null, DATA_SIG = '', RAW = null, map = null, VIEW = null, markers = {
     const n = (navigator.language || '').slice(0, 2).toLowerCase(); if (LANGS.includes(n)) return n;
     return LANGS[0] || 'fr';
   })();
-  const t = (k, v = {}) => String((I18N[LANG] && I18N[LANG][k]) ?? I18N.fr[k] ?? k).replace(/\{(\w+)\}/g, (_, x) => v[x] ?? '');
+  let CORRECTIONS = [], CORRECTIONS_SIG = '', corrObserver = null;
+  const corrTextState = new WeakMap(), corrAttrState = new WeakMap();
   const CACHE_KEY = 'utmb_data_v1_' + LANG;
+
+  /* Corrections éditables depuis le Sheet — appliquées à TOUT texte visible de la page.
+     Le suivi de la valeur source évite les doubles remplacements, même si le DOM est redessiné. */
+  const echapperRegExp = s => String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  function compilerCorrections(liste) {
+    const alpha = 'A-Za-zÀ-ÖØ-öø-ÿ0-9';
+    return (Array.isArray(liste) ? liste : [])
+      .filter(c => c && String(c.source || '').trim())
+      .map(c => {
+        const source = String(c.source).trim(), remplacement = String(c.remplacement == null ? '' : c.remplacement);
+        const debut = new RegExp('^[' + alpha + ']$').test(source.charAt(0));
+        const fin = new RegExp('^[' + alpha + ']$').test(source.charAt(source.length - 1));
+        return { source, remplacement, re: new RegExp((debut ? '(^|[^' + alpha + '])' : '()') + '(' + echapperRegExp(source) + ')' + (fin ? '(?=$|[^' + alpha + '])' : ''), 'gi') };
+      })
+      .sort((a, b) => b.source.length - a.source.length);
+  }
+  function corrigerTexte(valeur) {
+    let out = String(valeur == null ? '' : valeur);
+    CORRECTIONS.forEach(c => { out = out.replace(c.re, (_, avant) => (avant || '') + c.remplacement); });
+    return out;
+  }
+  const t = (k, v = {}) => {
+    const texte = String((I18N[LANG] && I18N[LANG][k]) ?? I18N.fr[k] ?? k).replace(/\{(\w+)\}/g, (_, x) => v[x] ?? '');
+    return k === '_locale' ? texte : corrigerTexte(texte);
+  };
+
+  const CORR_ATTRS = ['placeholder', 'title', 'aria-label', 'alt'];
+  const ignorerTexte = n => !n.parentElement || !!n.parentElement.closest('script,style,noscript,template');
+  function corrigerNoeudTexte(n, force) {
+    if (!n || n.nodeType !== Node.TEXT_NODE || ignorerTexte(n)) return;
+    const precedent = corrTextState.get(n), courant = n.nodeValue || '';
+    const source = precedent && (force || courant === precedent.rendu) ? precedent.source : courant;
+    const rendu = corrigerTexte(source);
+    corrTextState.set(n, { source, rendu });
+    if (courant !== rendu) n.nodeValue = rendu;
+  }
+  function corrigerAttribut(el, nom, force) {
+    if (!el || el.nodeType !== Node.ELEMENT_NODE || !el.hasAttribute(nom)) return;
+    let etat = corrAttrState.get(el); if (!etat) { etat = {}; corrAttrState.set(el, etat); }
+    const courant = el.getAttribute(nom) || '', precedent = etat[nom];
+    const source = precedent && (force || courant === precedent.rendu) ? precedent.source : courant;
+    const rendu = corrigerTexte(source); etat[nom] = { source, rendu };
+    if (courant !== rendu) el.setAttribute(nom, rendu);
+  }
+  function appliquerCorrectionsPage(force, racine) {
+    const root = racine || document;
+    if (root.nodeType === Node.TEXT_NODE) corrigerNoeudTexte(root, force);
+    if (root.nodeType === Node.ELEMENT_NODE) CORR_ATTRS.forEach(a => corrigerAttribut(root, a, force));
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+    let n; while ((n = walker.nextNode())) corrigerNoeudTexte(n, force);
+    if (root.querySelectorAll) root.querySelectorAll('*').forEach(el => CORR_ATTRS.forEach(a => corrigerAttribut(el, a, force)));
+  }
+  function observerCorrections() {
+    if (corrObserver) return;
+    corrObserver = new MutationObserver(mutations => mutations.forEach(m => {
+      if (m.type === 'characterData') corrigerNoeudTexte(m.target, false);
+      else if (m.type === 'attributes') corrigerAttribut(m.target, m.attributeName, false);
+      else m.addedNodes.forEach(n => appliquerCorrectionsPage(false, n));
+    }));
+    corrObserver.observe(document.documentElement, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: CORR_ATTRS });
+  }
+  function activerCorrections(liste) {
+    const propres = (Array.isArray(liste) ? liste : []).map(c => ({ source: String(c.source || ''), remplacement: String(c.remplacement == null ? '' : c.remplacement) }));
+    const sig = JSON.stringify(propres);
+    if (sig !== CORRECTIONS_SIG) { CORRECTIONS_SIG = sig; CORRECTIONS = compilerCorrections(propres); appliquerCorrectionsPage(true); }
+    observerCorrections();
+  }
 
   function switchLang(l) {
     if (!LANGS.includes(l) || l === LANG) return;
@@ -144,6 +212,7 @@ let DATA = null, DATA_SIG = '', RAW = null, map = null, VIEW = null, markers = {
     } catch (e) { return null; } finally { if (to) clearTimeout(to); }
   }
   function prepare(d) {
+    activerCorrections(d.corrections || []);
     d.parametres = d.parametres || {};
     d.etapes = (d.etapes || []).filter(e => e.titre)
       .map((e, i) => ({ ...e, ordre: Number(e.ordre) || i + 1, lat: num(e.lat) ?? NaN, lng: num(e.lng) ?? NaN }))
@@ -699,7 +768,9 @@ if (stacked.has(e.id)) opts.offset = [-12, -3]; // marqueur superposé : toujour
     const qs = formulaires()[form] || [];
     if (!qs.length) return '';
     const lim = DATA.parametres.date_limite_reponse;
-    const intro = form === 'presence' && lim && !String(lim).includes('[') ? `<p class="form-off">${esc(t('avant_le', { d: lim }))}</p>` : '';
+    const intro = form === 'presence' && lim && !String(lim).includes('[') ? `<div class="form-deadline" role="note">
+      <span class="form-deadline-icon" aria-hidden="true">📅</span><span class="form-deadline-text">
+      <span class="form-deadline-label">${esc(t('deadline_label'))}</span><strong class="form-deadline-date">${esc(t('deadline_date', { d: lim }))}</strong></span></div>` : '';
     return `<form class="form" data-type="${esc(form)}" novalidate>${intro}
       <div class="form-grid">${qs.map(q => champHtml(q, form)).join('')}</div>
       <p class="form-legende"><span class="req">*</span> ${esc(t('requis'))}</p>
@@ -921,6 +992,7 @@ if (stacked.has(e.id)) opts.offset = [-12, -3]; // marqueur superposé : toujour
       if (maj && formulaireEnCours()) return false;    // l'invité remplit un formulaire : on ne touche à rien
       RAW = d; DATA_SIG = sig; DATA = prepare(JSON.parse(sig));
     renderHero(); renderNav(); renderProgress(); renderPanel(); renderSections(); renderGalerie(); initScrollSpy(); initStrips();
+    appliquerCorrectionsPage(false);
     delete $('#map2d').dataset.ok;
     if (MODE === '2d') render2D();
     if (map) { map.remove(); map = null; markers = {}; }
@@ -1064,9 +1136,11 @@ if (stacked.has(e.id)) opts.offset = [-12, -3]; // marqueur superposé : toujour
     $('#btnReset').addEventListener('click', () => { stopTour(); map && VIEW && map.flyTo({ center: VIEW.center, zoom: VIEW.zoom, pitch: VIEW.pitch, bearing: VIEW.bearing, duration: 2200 }); });
     initModes();
 
+    const cache = readCache();                         // permet aussi de corriger immédiatement l'écran d'accès
+    if (cache) activerCorrections(cache.corrections || []);
     const frais = fetchData();                        // la requête part tout de suite, même pendant le code d'accès
+    frais.then(d => { if (d) activerCorrections(d.corrections || []); }).catch(() => {});
     await gate();
-    const cache = readCache();
     if (cache) { renderAll(cache); announceNew(); }   // visite suivante : tout s'affiche instantanément
     const d = await frais;
     if (d) { const premier = !DATA; renderAll(d, !premier); if (premier) announceNew(); }
@@ -1078,3 +1152,4 @@ if (stacked.has(e.id)) opts.offset = [-12, -3]; // marqueur superposé : toujour
   }
   start();
 })();
+

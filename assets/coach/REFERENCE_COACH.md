@@ -44,3 +44,4 @@ Visuel maître validé par Lorenzo. Toute future pose doit conserver strictement
 
 ## Étape manuelle indispensable
 Enregistrer l’image de Coach validée dans ce dossier sous le nom exact `coach_reference.webp` avant de générer les variantes.
+

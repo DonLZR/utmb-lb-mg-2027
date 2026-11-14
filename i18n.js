@@ -23,7 +23,7 @@ installer: "📲 Installer l'appli", installer_court: "Installer l'appli", insta
     toast_new: "🎉 Nouveau point de passage débloqué : {t} !", toast_tap: "touchez à nouveau pour lire",
     en_savoir: "En savoir plus", voir_reserver: "Voir / réserver →",
     demo: "Mode démo : le formulaire sera actif une fois le Google Sheet branché.",
-    avant_le: "Réponse souhaitée avant le {d}.",
+    avant_le: "Réponse souhaitée avant le {d}.", deadline_label: "Date limite de réponse", deadline_date: "Avant le {d}",
     f_valider: "Valider mon inscription", f_envoyer: "Envoyer",
     choisir: "— Choisir —", oui: "Oui", non: "Non", requis: "réponse obligatoire",
     e_requis: "Merci de répondre à « {q} ».", e_nombre: "« {q} » : indiquez un nombre entre {min} et {max}.",
@@ -57,7 +57,7 @@ installer: "📲 Installa l'app", installer_court: "Installa l'app", installe: "
     toast_new: "🎉 Nuovo punto di passaggio sbloccato: {t}!", toast_tap: "toccate di nuovo per leggere",
     en_savoir: "Scopri di più", voir_reserver: "Vedi / prenota →",
     demo: "Modalità demo: il modulo sarà attivo una volta collegato il Google Sheet.",
-    avant_le: "Risposta gradita entro il {d}.",
+    avant_le: "Risposta gradita entro il {d}.", deadline_label: "Scadenza per la risposta", deadline_date: "Entro il {d}",
     f_valider: "Conferma la mia iscrizione", f_envoyer: "Invia",
     choisir: "— Scegliere —", oui: "Sì", non: "No", requis: "risposta obbligatoria",
     e_requis: "Rispondete a « {q} ».", e_nombre: "« {q} »: indicate un numero tra {min} e {max}.",
@@ -91,7 +91,7 @@ installer: "📲 Instalar la app", installer_court: "Instalar la app", installe:
     toast_new: "🎉 ¡Nuevo punto de paso desbloqueado: {t}!", toast_tap: "toquen de nuevo para leer",
     en_savoir: "Más información", voir_reserver: "Ver / reservar →",
     demo: "Modo demo: el formulario estará activo cuando se conecte el Google Sheet.",
-    avant_le: "Respuesta deseada antes del {d}.",
+    avant_le: "Respuesta deseada antes del {d}.", deadline_label: "Fecha límite de respuesta", deadline_date: "Antes del {d}",
     f_valider: "Confirmar mi inscripción", f_envoyer: "Enviar",
     choisir: "— Elegir —", oui: "Sí", non: "No", requis: "respuesta obligatoria",
     e_requis: "Respondan a « {q} ».", e_nombre: "« {q} »: indiquen un número entre {min} y {max}.",
@@ -111,3 +111,4 @@ window.UTMB_FLAGS = {
   it: '<svg viewBox="0 0 3 2" aria-hidden="true"><rect width="1" height="2" fill="#009246"/><rect x="1" width="1" height="2" fill="#fff"/><rect x="2" width="1" height="2" fill="#CE2B37"/></svg>',
   es: '<svg viewBox="0 0 3 2" aria-hidden="true"><rect width="3" height="2" fill="#D52B1E"/><rect width="3" height="1" fill="#fff"/><rect width="1" height="1" fill="#0039A6"/><polygon fill="#fff" points="0.500,0.200 0.567,0.407 0.785,0.407 0.609,0.535 0.676,0.743 0.500,0.615 0.324,0.743 0.391,0.535 0.215,0.407 0.433,0.407"/></svg>'
 };
+

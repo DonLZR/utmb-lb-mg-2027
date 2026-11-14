@@ -1,5 +1,18 @@
 # UTMB – Journal des versions
 
+## V2.4.0 — Tous les textes de la page sont modifiables depuis le Sheet
+- `Corrections_traduction` agit désormais sur **tous les textes visibles** : interface fixe, sections, formulaires, carte, messages, Coach, boutons, attributs accessibles et contenus issus du Sheet
+- Fonctionnement identique en `fr`, `it` et `es`
+- Les textes ajoutés après le chargement sont corrigés automatiquement, sans double remplacement
+- Les libellés techniques, URLs et valeurs enregistrées dans les réponses restent intacts : seule la couche affichée est modifiée
+- Les expressions longues sont appliquées avant les mots courts ; recherche insensible aux majuscules/minuscules
+- ⚠️ `Code.gs`, `app.js`, `i18n.js`, `style.css` et les numéros de version ont changé
+
+## V2.3.0 — Date limite lisible et corrections en français
+- Nouvel encart responsive pour la date limite de réponse, lisible sur ordinateur et téléphone
+- La langue `fr` est acceptée dans `Corrections_traduction`
+- L’outil `outils/hash.html` explique et simplifie le changement du code d’accès
+
 ## V2.2.0 — Sélections par pastilles pilotées depuis le Sheet
 - Nouveau type de question `pastilles` dans l’onglet `Questions`
 - Nouvelle colonne `mode_selection` : `unique` (une réponse) ou `multiple` (plusieurs réponses)
@@ -128,3 +141,4 @@
 
 ## V1.1.0 — Vue Chamonix & multilingue
 ## V1.0.0 — Lancement
+
