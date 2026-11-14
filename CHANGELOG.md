@@ -1,4 +1,11 @@
-# UTMB – Journal des versions
+# Journal des versions — U.T.M.B.
+
+## V2.4.1 — Accueil latéral responsive
+- Ordinateur et tablette : compte à rebours à gauche et profil altimétrique à droite, dans deux panneaux symétriques.
+- Panneaux plus transparents, avec flou léger et contour discret pour mieux préserver la photo d’accueil.
+- Téléphone : empilement vertical central compact ; altimètre simplifié sans la ligne secondaire.
+- Le bloc mobile reste dans le flux : aucun débordement ni chevauchement avec « Prendre le départ ».
+- Aucun changement de données ni d’Apps Script : `Code.gs` V2.4.0 reste compatible et ne doit pas être redéployé.
 
 ## V2.4.0 — Tous les textes de la page sont modifiables depuis le Sheet
 - `Corrections_traduction` agit désormais sur **tous les textes visibles** : interface fixe, sections, formulaires, carte, messages, Coach, boutons, attributs accessibles et contenus issus du Sheet

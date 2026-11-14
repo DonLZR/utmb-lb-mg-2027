@@ -1,4 +1,4 @@
-/* UTMB — moteur du site V2.4.0 (le contenu se gère dans le Google Sheet) */
+/* UTMB — moteur du site V2.4.1 (le contenu se gère dans le Google Sheet) */
 (() => {
   'use strict';
   const C = window.UTMB_CONFIG, I18N = window.UTMB_I18N, FLAGS = window.UTMB_FLAGS;

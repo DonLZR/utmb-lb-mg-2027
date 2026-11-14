@@ -1,4 +1,4 @@
-/* UTMB — Coach la marmotte (V2.4.0)
+/* UTMB — Coach la marmotte (V2.4.1)
    Module chargé À LA DEMANDE uniquement (jamais au démarrage de la page) par app.js.
    1 seule image (coach.webp, ~60 Ko) + animations Web Animations API (transform / opacity).
    7 animations : coucou, jumelles, montre, ravito (aléatoires) + dossard, deblocage, matos (événements). */
@@ -6,7 +6,7 @@
   'use strict';
   if (window.UTMB_COACH) return;
   const BASE = (document.currentScript && document.currentScript.src.replace(/coach\.js.*$/, '')) || 'assets/coach/';
-  const IMG = BASE + 'coach.webp?v=2.4.0';
+  const IMG = BASE + 'coach.webp?v=2.4.1';
   const RATIO = 315 / 560;                       // largeur / hauteur de coach.webp
   const VUES_KEY = 'utmb_coach_vues', OFF_KEY = 'utmb_coach_off';
 
